@@ -1,0 +1,69 @@
+ZONGORATANÁR – telepítés és használat
+=====================================
+
+Mi van a csomagban?
+  index.html             maga a program (egyetlen fájl, ebben van minden)
+  sw.js                  ettől működik net nélkül, ha egy webcímről telepíted
+  manifest.webmanifest   ettől tehető ki az iPad Főképernyőjére
+  icon-180.png, icon-512.png   az ikon
+
+
+A) SZÁMÍTÓGÉPEN – a leggyorsabb kipróbálás
+------------------------------------------
+  1. Csomagold ki a zip-et egy mappába.
+  2. Nyisd meg az index.html fájlt Chrome-ban vagy Edge-ben
+     (dupla kattintás, vagy húzd rá a böngészőablakra).
+  3. Válassz egy darabot, és engedélyezd a mikrofont, amikor a böngésző rákérdez.
+
+  Így net nélkül is megy, hiszen a fájl a gépeden van.
+
+  Szintetizátor kábellel: ha USB-n (MIDI) a géphez kötöd, kattints a
+  „MIDI-billentyűzet csatlakoztatása” gombra. Ilyenkor mikrofon sem kell,
+  a program pontosan látja, melyik billentyűt ütöd le.
+  Gyorsbillentyűk: → kihagyás, ← vissza, szóköz: lejátszás / szünet.
+
+
+B) IPADEN – net nélkül is
+-------------------------
+  Az iPad a mikrofont csak biztonságos (https://) címről engedi használni,
+  ezért a mappát egyszer fel kell tenni egy webcímre. Ez ingyenes, és pár perc.
+
+  Legegyszerűbben a Netlify Drop szolgáltatással (számítógépről):
+    1. Nyisd meg:  https://app.netlify.com/drop
+    2. Húzd rá a kicsomagolt mappát (vagy magát a zip-fájlt).
+       Pár másodperc múlva kapsz egy …netlify.app végű címet.
+    3. Regisztrálj (ingyenes), hogy az oldal megmaradjon – regisztráció
+       nélkül a próbaoldalt rövid idő után törlik.
+
+  Másik lehetőség a GitHub Pages (jó gyakorlat, ha programozni tanulsz):
+  új repository → Add file › Upload files → Settings › Pages.
+
+  Utána az iPaden:
+    4. Nyisd meg a kapott címet Safariban, válassz egy darabot,
+       és engedélyezd a mikrofont.
+    5. Megosztás gomb → „Főképernyőhöz adás”.
+    6. Indítsd a Főképernyőn megjelenő ikonról.
+       Az első indítás után internet nélkül is működik.
+
+  Ugyanez a cím a számítógépen is megnyitható, ott is telepíthető.
+
+
+TIPPEK
+------
+  - Tedd az iPadet (vagy a mikrofont) közel a hangszerhez, és gyakorolj csendben.
+  - Eleinte pedál nélkül játssz: a tisztán leütött hangot ismeri fel a legbiztosabban.
+  - Először a „Szabad játék” módban nézd meg, jól hallja-e a hangszeredet.
+  - Ha a jó hangot sem fogadja el: Beállítások › Érzékenység, illetve a hangolás bemérése.
+  - Ha egy hangot nem hall meg, koppints rá a képernyő billentyűzetén (az is számít),
+    vagy lépj tovább a „Kihagyom” gombbal.
+  - Saját darab: bármilyen zongoradarab betölthető MIDI-fájlból (.mid).
+
+
+AMIT TUDNI ÉRDEMES
+------------------
+  - A hangfelismerés a készüléken fut; a mikrofon hangja nem megy sehová.
+  - A felismerést eddig csak számítógéppel előállított zongorahanggal lehetett kipróbálni,
+    valódi hangszerrel és valódi szobában még nem. Az első próbánál ez derül ki igazán.
+  - Oktávval elütött vagy egy akkordból kihagyott hangot néha elfogad.
+  - Erős pedálnál előfordulhat téves „melléütés” jelzés.
+  - Zajos szobában (beszéd, tévé) ritkán magától is továbbléphet.

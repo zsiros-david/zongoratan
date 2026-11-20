@@ -1,0 +1,2631 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Zongoratanár</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Zongoraoktató iPadre: a mikrofonon át figyeli, mit játszol, és hangról hangra végigvezet a darabokon. Net nélkül is működik.">
+<meta name="theme-color" content="#14111a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Zongoratanár">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314111a'/%3E%3Crect x='6' y='14' width='6' height='13' rx='1' fill='%23f5efe3'/%3E%3Crect x='13' y='14' width='6' height='13' rx='1' fill='%23f5efe3'/%3E%3Crect x='20' y='14' width='6' height='13' rx='1' fill='%23f5efe3'/%3E%3Crect x='8' y='5' width='4' height='7' rx='1.5' fill='%23f3b544'/%3E%3Crect x='20' y='7' width='4' height='5' rx='1.5' fill='%2353c7ba'/%3E%3C/svg%3E">
+<style>
+:root {
+  /* Éjszakai hangversenyterem: szilvakék lakk, elefántcsont billentyűk; a jobb kéz borostyán, a bal kéz türkiz.
+     Elrendezés: a darabtár műsorfüzet-szerű lista, a gyakorló képernyő egyetlen "színpad" (hulló hangok + billentyűzet). */
+  --ink: #14111a;
+  --stage: #1b1723;
+  --panel: #241f2e;
+  --panel-2: #2f2839;
+  --line: #3d354b;
+  --ivory: #f5efe3;
+  --muted: #a9a1b6;
+  --dim: #7a7289;
+  --right: #f3b544;
+  --left: #53c7ba;
+  --ok: #8bdc8f;
+  --bad: #ff7366;
+  --felt: #a8283d;
+  --display: "Didot", "Bodoni 72", "Bodoni MT", "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --body: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--ink); color: var(--ivory); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--right); outline-offset: 2px; }
+
+.screen { height: 100%; display: flex; flex-direction: column; }
+
+/* ------------------------------------------------------------ darabtár -- */
+#home { overflow-y: auto; -webkit-overflow-scrolling: touch; }
+.wrap { width: 100%; max-width: 940px; margin: 0 auto; padding: 0 max(20px, env(safe-area-inset-right)) 0 max(20px, env(safe-area-inset-left)); }
+
+.masthead { padding: calc(28px + env(safe-area-inset-top)) 0 0; }
+.masthead h1 { font: 400 clamp(38px, 7vw, 60px)/1.02 var(--display); letter-spacing: -0.01em; margin: 0; text-wrap: balance; }
+.masthead p { color: var(--muted); margin: 10px 0 0; max-width: 56ch; }
+.keys-strip { height: 22px; margin: 22px 0 0; border-top: 3px solid var(--felt); border-radius: 0 0 4px 4px; overflow: hidden;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 15px, rgba(20, 17, 26, .55) 15px 16px),
+    linear-gradient(var(--ivory), #d9d0bf); position: relative; }
+.keys-strip::after { content: ""; position: absolute; inset: 0 0 8px 0;
+  background: repeating-linear-gradient(90deg, transparent 0 11px, #17131d 11px 21px, transparent 21px 27px, #17131d 27px 37px, transparent 37px 59px, #17131d 59px 69px, transparent 69px 75px, #17131d 75px 85px, transparent 85px 91px, #17131d 91px 101px, transparent 101px 112px); }
+
+.actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 22px 0 6px; }
+.actions #btn-continue { flex: 1 1 100%; justify-content: center; white-space: normal; text-align: center; min-height: 50px; }
+.btn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 9px 14px; min-height: 42px;
+  display: inline-flex; align-items: center; gap: 8px; white-space: nowrap; }
+.btn:active { background: var(--panel-2); }
+.btn.primary { background: var(--ivory); color: var(--ink); border-color: var(--ivory); font-weight: 600; }
+.btn.ghost { background: transparent; }
+.btn.small { min-height: 36px; padding: 6px 11px; font-size: 14px; }
+.btn svg { width: 18px; height: 18px; flex: none; }
+
+.notice { margin: 14px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-left: 3px solid var(--right); border-radius: 8px; background: var(--panel); color: var(--ivory); font-size: 15px; }
+.notice b { font-weight: 600; }
+
+.group { margin: 34px 0 0; }
+.group h2 { font: 600 12px/1 var(--body); letter-spacing: .18em; text-transform: uppercase; color: var(--muted); margin: 0; padding: 0 0 10px; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; gap: 12px; }
+.piece-row { display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--line); }
+.piece { flex: 1 1 auto; min-width: 0; display: grid; grid-template-columns: 1fr auto; gap: 2px 18px; align-items: center; text-align: left;
+  padding: 15px 2px; border: 0; background: none; }
+.piece:active { background: var(--panel); }
+.piece .t { font: 400 22px/1.2 var(--display); }
+.piece .by { color: var(--muted); font-size: 14px; grid-column: 1; }
+.piece .meta { grid-row: 1 / span 2; grid-column: 2; text-align: right; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.dots { display: inline-flex; gap: 4px; }
+.dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--line); }
+.dots i.on { background: var(--right); }
+.del { flex: none; border: 1px solid var(--line); background: none; border-radius: 8px; padding: 6px 10px; min-height: 36px; font-size: 13px; color: var(--muted); }
+.del[data-sure] { color: var(--bad); border-color: var(--bad); }
+.foot { color: var(--dim); font-size: 13px; padding: 30px 0 calc(34px + env(safe-area-inset-bottom)); }
+.foot p { margin: 0 0 6px; max-width: 70ch; }
+
+/* ------------------------------------------------------------- gyakorló -- */
+#player { background: var(--stage); user-select: none; -webkit-user-select: none; }
+.bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding: calc(8px + env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left));
+  background: var(--panel); border-bottom: 1px solid var(--line); }
+.bar .title { min-width: 0; flex: 1 1 110px; }
+.bar .mic { order: 2; }
+.bar .tools { order: 3; flex: 1 0 100%; display: flex; align-items: center; gap: 10px; overflow-x: auto; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
+.bar .tools::-webkit-scrollbar { display: none; }
+.bar .tools > * { flex: none; }
+@media (min-width: 1100px) {
+  .bar { flex-wrap: nowrap; }
+  .bar .tools { order: 2; flex: 0 0 auto; overflow: visible; }
+  .bar .mic { order: 3; }
+}
+.bar .title b { display: block; font: 400 19px/1.15 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar .title span { display: block; color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--stage); }
+.seg button { border: 0; background: none; padding: 8px 12px; min-height: 40px; font-size: 14px; color: var(--muted); border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--ivory); color: var(--ink); font-weight: 600; }
+.seg.hands button[data-v="R"][aria-pressed="true"] { background: var(--right); }
+.seg.hands button[data-v="L"][aria-pressed="true"] { background: var(--left); }
+select.sel { background: var(--stage); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; min-height: 40px; font-size: 14px; max-width: 170px; }
+
+.mic { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; min-height: 40px; background: var(--stage); font-size: 13px; color: var(--muted); white-space: nowrap; }
+.mic:disabled { opacity: .75; cursor: default; }
+.mic:not(.on) .lvl, .mic:not(.on) .heard { display: none; }
+.mic .lamp { width: 9px; height: 9px; border-radius: 50%; background: var(--dim); flex: none; }
+.mic.on .lamp { background: var(--ok); box-shadow: 0 0 8px var(--ok); }
+.mic.err .lamp { background: var(--bad); }
+.mic .lvl { width: 46px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.mic .lvl i { display: block; height: 100%; width: 0; background: var(--ok); }
+.mic .heard { min-width: 2.4em; max-width: 6.5em; overflow: hidden; text-overflow: ellipsis; color: var(--ivory); font-weight: 600; }
+
+.sub { display: flex; align-items: center; gap: 12px; padding: 7px max(12px, env(safe-area-inset-right)) 7px max(12px, env(safe-area-inset-left)); border-bottom: 1px solid var(--line); min-height: 50px; flex-wrap: wrap; }
+.sub .hint { flex: 1 1 200px; min-width: 0; font-size: 15px; }
+.sub .hint b { font-weight: 600; }
+.sub .hint .r { color: var(--right); } .sub .hint .l { color: var(--left); } .sub .hint .x { color: var(--bad); }
+.prog { flex: 0 0 120px; height: 6px; border-radius: 3px; background: var(--line); overflow: hidden; }
+.prog i { display: block; height: 100%; width: 0; background: var(--ivory); transition: width .15s; }
+.count { color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; min-width: 4.5em; text-align: right; }
+.tempo { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
+.tempo input { width: 110px; accent-color: var(--ivory); }
+
+.stagebox { position: relative; flex: 1 1 auto; min-height: 0; background: #fbf7ee; }
+#stage { position: absolute; left: 0; top: 0; width: 100%; height: calc(100% - env(safe-area-inset-bottom)); display: block; touch-action: none; }
+
+.overlay { position: absolute; inset: 0; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: 20px; background: rgba(20, 17, 26, .72); z-index: 5; }
+.card { width: min(520px, 100%); background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 24px; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); max-height: 100%; overflow-y: auto; -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+.card h2 { font: 400 28px/1.1 var(--display); margin: 0 0 8px; text-wrap: balance; }
+.card p { color: var(--muted); margin: 0 0 14px; }
+.card p.by { margin-top: -4px; font-size: 14px; }
+.card p.task { color: var(--ivory); font-weight: 600; }
+.card p.note { font-size: 14px; }
+.btn:disabled { opacity: .6; }
+.card .row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 18px; }
+.stars { font-size: 30px; letter-spacing: 6px; color: var(--right); margin: 4px 0 10px; }
+.stars .off { color: var(--line); }
+.stat { display: flex; gap: 22px; margin: 6px 0 4px; }
+.stat div { font-size: 13px; color: var(--muted); }
+.stat b { display: block; font: 400 26px/1.1 var(--display); color: var(--ivory); font-variant-numeric: tabular-nums; }
+
+/* ------------------------------------------------------------- lapok -- */
+.sheet { position: fixed; inset: 0; z-index: 20; display: grid; grid-template: minmax(0, 1fr) / minmax(0, 1fr); place-items: center; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); background: rgba(20, 17, 26, .78); }
+.sheet .card { width: min(600px, 100%); }
+.sheet h3 { font: 600 12px/1 var(--body); letter-spacing: .16em; text-transform: uppercase; color: var(--muted); margin: 22px 0 10px; }
+.field { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 10px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+.field label { flex: 1 1 220px; }
+.field small { display: block; color: var(--muted); font-size: 13px; }
+.field input[type="range"] { width: 170px; accent-color: var(--right); }
+.field select.sel { max-width: none; }
+.field output { min-width: 4.5em; text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; font-size: 14px; }
+.switch { position: relative; width: 48px; height: 28px; flex: none; }
+.switch input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.switch i { position: absolute; inset: 0; border-radius: 14px; background: var(--line); transition: background .15s; pointer-events: none; }
+.switch i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 22px; height: 22px; border-radius: 50%; background: var(--ivory); transition: transform .15s; }
+.switch input:checked + i { background: var(--left); }
+.switch input:checked + i::after { transform: translateX(20px); }
+.switch input:focus-visible + i { outline: 2px solid var(--right); outline-offset: 2px; }
+
+.plan { list-style: none; margin: 0; padding: 0; }
+.plan li { border-bottom: 1px solid var(--line); }
+.plan button { width: 100%; display: grid; grid-template-columns: 26px 1fr auto; gap: 10px; align-items: center; text-align: left; background: none; border: 0; padding: 12px 2px; min-height: 48px; }
+.plan button:active { background: var(--panel-2); }
+.plan .n { color: var(--dim); font-variant-numeric: tabular-nums; font-size: 13px; }
+.plan .s { color: var(--right); letter-spacing: 2px; font-size: 14px; }
+.plan .s .off { color: var(--line); }
+.plan .cur { color: var(--ivory); font-weight: 600; }
+.plan .hand { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; }
+.plan .hand.R { background: var(--right); } .plan .hand.L { background: var(--left); }
+.plan .hand.both { background: linear-gradient(90deg, var(--left) 50%, var(--right) 50%); }
+
+ol.steps { margin: 0 0 6px; padding-left: 22px; }
+ol.steps li { margin: 0 0 8px; }
+.kbd { display: inline-block; border: 1px solid var(--line); border-radius: 6px; padding: 0 6px; background: var(--stage); font-size: 14px; }
+
+@media (max-width: 700px) {
+  .piece .t { font-size: 19px; }
+  .seg button { padding: 8px 10px; }
+  .prog { flex: 1 1 60px; }
+  .tempo input { width: 80px; }
+  .sub .hint { flex-basis: 100%; }
+  .card { padding: 20px; }
+  .card h2 { font-size: 24px; }
+}
+/* fektetett telefon: kevés a magasság, a sávok összehúzódnak */
+@media (max-height: 480px) {
+  .bar { padding-top: calc(4px + env(safe-area-inset-top)); padding-bottom: 4px; gap: 4px 10px; flex-wrap: nowrap; }
+  .bar .title span { display: none; }
+  .bar .title { flex: 1 1 60px; }
+  .bar .tools { order: 2; flex: 1 1 200px; min-width: 0; }
+  .bar .mic { order: 3; }
+  .btn.small, .seg button, select.sel, .mic { min-height: 34px; padding-top: 4px; padding-bottom: 4px; }
+  .sub { min-height: 40px; padding-top: 3px; padding-bottom: 3px; flex-wrap: nowrap; }
+  .sub .hint { flex-basis: 120px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .overlay { padding: 8px; }
+  .card { padding: 14px 18px; }
+  .card h2 { font-size: 22px; }
+  .card p { margin-bottom: 8px; }
+  .card .row { margin-top: 10px; }
+}
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+
+</style>
+</head>
+<body>
+
+<!-- ================================================================ darabtár -->
+<section id="home" class="screen">
+  <div class="wrap">
+    <header class="masthead">
+      <h1>Zongoratanár</h1>
+      <p>Válassz egy darabot. A program a mikrofonon át figyeli, mit játszol, és hangról hangra megvár: addig nem megy tovább, amíg a jó billentyűt le nem ütöd.</p>
+      <div class="keys-strip" aria-hidden="true"></div>
+    </header>
+
+    <div class="actions">
+      <button class="btn primary" id="btn-continue" type="button" hidden></button>
+      <button class="btn" id="btn-free" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>
+        Szabad játék: mit hall a program?
+      </button>
+      <button class="btn" id="btn-import" type="button">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>
+        Saját darab (MIDI-fájl)
+      </button>
+      <button class="btn" id="btn-midi" type="button" hidden>MIDI-billentyűzet csatlakoztatása</button>
+      <button class="btn" id="btn-settings" type="button">Beállítások</button>
+      <button class="btn" id="btn-help" type="button">Telepítés és tippek</button>
+      <input type="file" id="file-midi" accept=".mid,.midi,audio/midi,audio/x-midi" hidden>
+    </div>
+    <div class="notice" id="home-notice" hidden></div>
+
+    <main id="library"></main>
+
+    <footer class="foot">
+      <p id="credits"></p>
+      <p>A hangfelismerés a készüléken fut; a mikrofon hangja nem hagyja el az iPadet, és semmi nem kerül rögzítésre.</p>
+    </footer>
+  </div>
+</section>
+
+<!-- ================================================================ gyakorló -->
+<section id="player" class="screen" hidden>
+  <header class="bar">
+    <button class="btn small" id="btn-back" type="button" aria-label="Vissza a darabokhoz">‹ Darabok</button>
+    <div class="title"><b id="p-title"></b><span id="p-by"></span></div>
+    <div class="tools">
+      <div class="seg" id="seg-mode" role="group" aria-label="Mód">
+        <button type="button" data-v="learn" aria-pressed="true">Tanulás</button>
+        <button type="button" data-v="listen" aria-pressed="false">Meghallgatás</button>
+      </div>
+      <div class="seg hands" id="seg-hands" role="group" aria-label="Melyik kéz">
+        <button type="button" data-v="R" aria-pressed="false" aria-label="Jobb kéz">Jobb</button>
+        <button type="button" data-v="L" aria-pressed="false" aria-label="Bal kéz">Bal</button>
+        <button type="button" data-v="both" aria-pressed="true" aria-label="Két kézzel együtt">Együtt</button>
+      </div>
+      <select class="sel" id="sel-sec" aria-label="Szakasz"></select>
+      <button class="btn small" id="btn-plan" type="button">Tanterv</button>
+    </div>
+    <button class="mic" id="mic" type="button"><i class="lamp"></i><span id="mic-text">Mikrofon ki</span><span class="lvl"><i id="mic-lvl"></i></span><span class="heard" id="mic-heard"></span></button>
+  </header>
+  <div class="sub">
+    <div class="hint" id="hint"></div>
+    <label class="tempo" id="tempo-box" hidden>Tempó <input type="range" id="tempo" min="30" max="120" step="5" value="100"> <output id="tempo-out">100%</output></label>
+    <button class="btn small primary" id="btn-play" type="button" hidden>▶ Lejátszás</button>
+    <button class="btn small" id="btn-prev" type="button" aria-label="Egy lépést vissza">‹</button>
+    <button class="btn small" id="btn-skip" type="button">Kihagyom ›</button>
+    <button class="btn small" id="btn-restart" type="button">Elölről</button>
+    <div class="prog" aria-hidden="true"><i id="prog"></i></div>
+    <div class="count" id="count"></div>
+  </div>
+  <div class="stagebox">
+    <canvas id="stage"></canvas>
+
+    <div class="overlay" id="ov-start" hidden>
+      <div class="card">
+        <h2 id="st-title"></h2>
+        <p class="by" id="st-by"></p>
+        <p id="st-info"></p>
+        <p class="task" id="st-task"></p>
+        <p class="note" id="st-note"></p>
+        <div class="row">
+          <button class="btn primary" id="st-go" type="button" data-act="mic">Mikrofon bekapcsolása</button>
+          <button class="btn" id="st-touch" type="button">Csak érintéssel próbálom</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="overlay" id="ov-done" hidden>
+      <div class="card">
+        <h2 id="dn-title">Szép munka!</h2>
+        <div class="stars" id="dn-stars" aria-hidden="true"></div>
+        <div class="stat"><div><b id="dn-time">0:00</b>idő</div><div><b id="dn-wrong">0</b>melléütés</div><div><b id="dn-skip">0</b>kihagyás</div></div>
+        <p id="dn-next"></p>
+        <div class="row">
+          <button class="btn primary" id="dn-go" type="button">Tovább a következőre</button>
+          <button class="btn" id="dn-again" type="button">Még egyszer</button>
+          <button class="btn ghost" id="dn-home" type="button">Darabok</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================================================================ lapok -->
+<div class="sheet" id="sh-settings" hidden>
+  <div class="card" role="dialog" aria-labelledby="set-h">
+    <h2 id="set-h">Beállítások</h2>
+    <h3>Kijelzés</h3>
+    <div class="field">
+      <label for="set-names">Hangnevek<small>Magyarul a H a „si”, a B pedig a leszállított H.</small></label>
+      <select class="sel" id="set-names"><option value="hu">Magyar (C–H)</option><option value="int">Nemzetközi (C–B)</option></select>
+    </div>
+    <div class="field">
+      <label for="set-labels">Hangnevek a hulló hangjegyeken</label>
+      <span class="switch"><input type="checkbox" id="set-labels"><i></i></span>
+    </div>
+    <div class="field">
+      <label for="set-fingers">Ujjrend mutatása<small>Ahol a darabhoz van ujjrend: 1 = hüvelykujj … 5 = kisujj.</small></label>
+      <span class="switch"><input type="checkbox" id="set-fingers"><i></i></span>
+    </div>
+    <h3>Mikrofon</h3>
+    <div class="field">
+      <label for="set-sens">Érzékenység<small>Halk zongorához vagy távoli iPadhez növeld; ha magától is lép, csökkentsd.</small></label>
+      <input type="range" id="set-sens" min="-6" max="8" step="1"><output id="set-sens-out"></output>
+    </div>
+    <div class="field">
+      <label for="set-octave">Oktáv ellenőrzése<small>Ha be van kapcsolva, az egy oktávval lejjebb leütött hangot nem fogadja el.</small></label>
+      <span class="switch"><input type="checkbox" id="set-octave"><i></i></span>
+    </div>
+    <div class="field">
+      <label for="set-ref">A zongora hangolása (az A hang)<small id="set-ref-msg">Ha a zongorád mélyebbre vagy magasabbra van hangolva, mérd be.</small></label>
+      <input type="range" id="set-ref" min="415" max="466" step="1"><output id="set-ref-out"></output>
+      <button class="btn small" id="set-measure" type="button">Bemérés</button>
+    </div>
+    <h3>Hang</h3>
+    <div class="field">
+      <label for="set-vol">A program hangereje<small>Meghallgatáskor és az érintős billentyűzeten.</small></label>
+      <input type="range" id="set-vol" min="0" max="100" step="5"><output id="set-vol-out"></output>
+    </div>
+    <h3>Haladás</h3>
+    <div class="field">
+      <label>Eddigi eredmények törlése<small>A csillagok és a befejezett leckék elvesznek; a saját darabok megmaradnak.</small></label>
+      <button class="btn small" id="set-reset" type="button">Törlés</button>
+    </div>
+    <div class="row"><button class="btn primary" id="set-close" type="button">Kész</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="sh-plan" hidden>
+  <div class="card" role="dialog" aria-labelledby="plan-h">
+    <h2 id="plan-h">Tanterv</h2>
+    <p id="plan-info"></p>
+    <p>Kis szakaszokban haladunk: előbb külön a jobb, aztán a bal kéz, végül együtt. Koppints egy feladatra.</p>
+    <ol class="plan" id="plan-list"></ol>
+    <div class="row"><button class="btn primary" id="plan-close" type="button">Bezárás</button></div>
+  </div>
+</div>
+
+<div class="sheet" id="sh-help" hidden>
+  <div class="card" role="dialog" aria-labelledby="help-h">
+    <h2 id="help-h">Telepítés és tippek</h2>
+    <h3>Hogy net nélkül is menjen</h3>
+    <ol class="steps">
+      <li>Nyisd meg ezt az oldalt az iPaden <b>Safariban</b> (más böngészőből nem telepíthető).</li>
+      <li>Koppints a <span class="kbd">Megosztás</span> gombra, majd a <b>Főképernyőhöz adás</b> pontra.</li>
+      <li>Indítsd a Főképernyőn megjelenő ikonról. Az első indítás után internet nélkül is működik.</li>
+    </ol>
+    <p id="help-state"></p>
+    <h3>Hogy jól halljon a mikrofon</h3>
+    <ol class="steps">
+      <li>Tedd az iPadet a kottatartóra vagy közvetlenül a zongora mellé.</li>
+      <li>Csendes szobában gyakorolj; a tévé és a beszéd megzavarhatja.</li>
+      <li>Játssz határozottan, és eleinte pedál nélkül: a tisztán leütött hangot ismeri fel a legbiztosabban.</li>
+      <li>Ha a jó hangot sem fogadja el, növeld az érzékenységet, vagy mérd be a hangolást a Beállításokban.</li>
+      <li>Ha egy hangot nem hall meg, koppints rá a képernyő billentyűzetén – az is leütésnek számít –, vagy lépj tovább a <span class="kbd">Kihagyom ›</span> gombbal.</li>
+      <li>Ha gyakorlás közben elsötétül a képernyő, állítsd az iPad automatikus zárolását hosszabbra (Beállítások › Kijelző és fényerő).</li>
+    </ol>
+    <h3>Számítógépen</h3>
+    <p>Ugyanez a program számítógépen is fut, Chrome, Edge vagy Firefox böngészőben – nagy monitoron kényelmes. Ha a szintetizátorodat USB-kábellel (MIDI) a géphez kötöd, a <span class="kbd">MIDI-billentyűzet csatlakoztatása</span> gomb után mikrofon nélkül, pontosan látom, mit ütsz le. Gyorsbillentyűk: <span class="kbd">→</span> kihagyás, <span class="kbd">←</span> vissza, <span class="kbd">szóköz</span> lejátszás.</p>
+    <h3>Saját darab</h3>
+    <p>Bármilyen zongoradarabot betölthetsz MIDI-fájlból (.mid). Közkincs darabok MIDI-fájljait például a Mutopia Project oldalán találod. A betöltött darab az iPaden marad, legközelebb is ott lesz.</p>
+    <div class="row"><button class="btn primary" id="help-close" type="button">Bezárás</button></div>
+  </div>
+</div>
+
+<script>
+/* ============================================================================
+   Hangfelismerő motor – többszólamú zongorahang-felismerés mikrofonból.
+   Böngészőben és Node-ban is fut (a tesztek ugyanezt a fájlt használják).
+
+   Rétegek:
+     1. Több felbontású spektrum (4 FFT: mély hangokhoz hosszú, magasakhoz rövid ablak)
+     2. Csúcskeresés zajküszöb fölött (zaj-, búgás- és oldalhullám-szűréssel)
+     3. Hangonként az alaphang és a felhangok illesztése
+     4. "Engedékeny" jelenlét (várt hangok igazolásához) és "szigorú" jelenlét
+        (kijelzéshez; egy mélyebb hang felhangjai nem számítanak önálló hangnak)
+     5. Leütés-érzékelés hangonként a nyers spektrumszint hirtelen emelkedéséből,
+        plusz szélessávú leütés (spektrális fluxus)
+     6. StepVerifier: a tanuló mód – a várt hangok leütésének ellenőrzése
+   ========================================================================== */
+(function (root) {
+  'use strict';
+
+  var MIN = 21, MAX = 108;          // A0 .. C8
+  var NEG = -200;
+
+  // ---------------------------------------------------------------- FFT ----
+  function FFT(n) {
+    this.n = n;
+    var half = n >> 1, bits = Math.round(Math.log(n) / Math.LN2), i, j;
+    this.cos = new Float32Array(half);
+    this.sin = new Float32Array(half);
+    for (i = 0; i < half; i++) {
+      var a = 2 * Math.PI * i / n;
+      this.cos[i] = Math.cos(a); this.sin[i] = Math.sin(a);
+    }
+    this.rev = new Uint32Array(n);
+    for (i = 0; i < n; i++) {
+      var r = 0, x = i;
+      for (j = 0; j < bits; j++) { r = (r << 1) | (x & 1); x >>= 1; }
+      this.rev[i] = r;
+    }
+    this.re = new Float32Array(n);
+    this.im = new Float32Array(n);
+    this.win = new Float32Array(n);
+    var s = 0;
+    for (i = 0; i < n; i++) { this.win[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / n); s += this.win[i]; }
+    this.normDb = 20 * Math.log10(2 / s);     // A amplitúdójú szinusz -> 20·log10(A)
+  }
+  // a buf[end-n .. end) mintákat alakítja át (Hann-ablakkal)
+  FFT.prototype.run = function (buf, end) {
+    var n = this.n, re = this.re, im = this.im, rev = this.rev, win = this.win;
+    var cos = this.cos, sin = this.sin, off = end - n, i, j, k;
+    for (i = 0; i < n; i++) re[rev[i]] = buf[off + i] * win[i];
+    im.fill(0);
+    for (var size = 2; size <= n; size <<= 1) {
+      var half = size >> 1, step = n / size;
+      for (i = 0; i < n; i += size) {
+        for (j = i, k = 0; j < i + half; j++, k += step) {
+          var l = j + half;
+          var tre = re[l] * cos[k] + im[l] * sin[k];
+          var tim = im[l] * cos[k] - re[l] * sin[k];
+          re[l] = re[j] - tre; im[l] = im[j] - tim;
+          re[j] += tre; im[j] += tim;
+        }
+      }
+    }
+  };
+
+  // --------------------------------------------------------- PitchEngine ----
+  function PitchEngine(sampleRate, opts) {
+    opts = opts || {};
+    this.sr = sampleRate;
+    this.refA = opts.refA || 440;
+    this.tuneCents = 0;                 // automatikusan követett eltérés (cent)
+    this.autoTune = opts.autoTune !== false;
+    this.sens = opts.sens == null ? 0 : opts.sens;   // érzékenység: + = érzékenyebb (dB)
+
+    var n0 = 1 << Math.round(Math.log(sampleRate * 0.34) / Math.LN2);
+    this.N = n0;                        // a leghosszabb ablak (ennyi minta kell)
+    var edges = [25, 250, 500, 1000, 6500], b, m, h;
+    this.bands = [];
+    for (b = 0; b < 4; b++) {
+      var n = n0 >> b, fft = new FFT(n), binHz = sampleRate / n, half = n >> 1;
+      var fHi = Math.min(edges[b + 1], sampleRate * 0.45);
+      this.bands.push({
+        fft: fft, n: n, binHz: binHz, winSec: n / sampleRate,
+        fLo: edges[b], fHi: fHi,
+        kLo: Math.max(3, Math.floor(edges[b] * 0.97 / binHz)),
+        kHi: Math.min(half - 3, Math.ceil(fHi * 1.03 / binHz)),
+        W: b === 3 ? 16 : 10,
+        db: new Float32Array(half).fill(NEG), floor: new Float32Array(half), fs: new Float32Array(half),
+        tmp: new Float32Array(64)
+      });
+    }
+    // csúcslista
+    this.pkM = new Float32Array(600); this.pkDb = new Float32Array(600);
+    this.pkSnr = new Float32Array(600); this.pkN = 0;
+    this.frameMax = NEG;
+
+    // hangonkénti tömbök
+    var S = 128;
+    this.f0Db = new Float32Array(S).fill(NEG);   // alaphang-csúcs szintje
+    this.f0Snr = new Float32Array(S);
+    this.f0Pk = new Int16Array(S).fill(-1);
+    this.f0Dev = new Float32Array(S);            // eltérés centben
+    this.hc = new Uint8Array(S);                 // megtalált felhangok száma (h=2..5)
+    this.E = new Float32Array(S).fill(NEG);      // a hang szintje (dB)
+    this.Eheld = new Float32Array(S).fill(NEG);  // utolsó ismert szint (ha épp nem látszik, lassan ereszkedik)
+    this.R = new Float32Array(S).fill(NEG);      // nyers spektrumszint az alaphang helyén (csúcs nélkül is)
+    this.R3 = new Float32Array(S).fill(NEG);     // ugyanez a 3. felhang helyén (mély hangokhoz)
+    this.P = new Float32Array(S);                // a nyers szint kiemelkedése a helyi zajküszöb fölé
+    this.alt = new Uint8Array(S);                // mély hang a felhangsorából felismerve (alaphang még/alig látszik)
+    this.lenF = new Uint8Array(S);               // engedékeny jelenlét az alaphang alapján
+    this.len = new Uint8Array(S);                // engedékeny jelenlét (alaphang vagy felhangsor)
+    this.strictNow = new Uint8Array(S);
+    this.cand = new Uint8Array(S);
+    this.shadowed = new Uint8Array(S);
+    this.heard = new Uint8Array(S);              // stabil szigorú jelenlét (kijelzés)
+    this.offCnt = new Uint8Array(S);
+    this.heardSince = new Float64Array(S);
+    this.pSince = new Float64Array(S).fill(-1);          // mióta van jelen megszakítás nélkül az alaphang
+    this.onsetKind = new Uint8Array(S);                 // az utolsó alaphang-leütés fajtája: 1 = új hang, 2 = már szóló hang újraütése
+    this.lenSince = new Float64Array(S).fill(-1);     // mióta van folyamatosan jelen
+    this.fSince = new Float64Array(S).fill(-1);       // mióta látszik folyamatosan az alaphang
+    this.aSince = new Float64Array(S).fill(-1);       // mióta ismerhető fel folyamatosan a felhangsor
+    this.devRef = new Float32Array(S);
+    this.fGone = new Float64Array(S).fill(-1e9);       // mikor tűnt el utoljára az alaphang
+    this.gap = new Float32Array(S).fill(1e9);
+    this.candSince = new Float64Array(S).fill(-1);    // mióta szigorú jelölt folyamatosan
+    this.lastOnset = new Float64Array(S).fill(-1e9);     // alaphang-leütés ideje
+    this.lastAltOnset = new Float64Array(S).fill(-1e9);  // felhangsor-leütés ideje (mély hangok)
+    this.onsetLevel = new Float32Array(S).fill(NEG);
+    this.srcUntil = new Float64Array(S).fill(-1e9);   // eddig számít forrásnak (lecsengés közben is)
+    this.srcMax = new Float32Array(S).fill(NEG);      // a forrás legerősebb részhangja
+    this.srcList = new Int16Array(S); this.srcN = 0;  // az aktuális képkocka forrásai (emelkedő sorrendben)
+    this.assumed = [];                                 // kívülről megadott források (a várt hangok)
+    this._isAssumed = new Uint8Array(S);
+    this.hpk = [];                                     // hpk[h][n] = a h. felhanghoz illesztett csúcs indexe
+    for (h = 0; h <= 9; h++) this.hpk.push(new Int16Array(S).fill(-1));
+    this.LOGH = new Float32Array(26);
+    for (h = 1; h < 26; h++) this.LOGH[h] = 12 * Math.log(h) / Math.LN2;
+
+    // előzmény a leütés-érzékeléshez
+    this.HN = 48;
+    this.histT = new Float64Array(this.HN).fill(-1e9);
+    this.histR = new Float32Array(this.HN * S).fill(NEG);
+    this.histR3 = new Float32Array(this.HN * S).fill(NEG);
+    this.histP = new Float32Array(this.HN * S);
+    this.hi = 0;
+
+    // hangonkénti időállandók az alaphang sávja szerint
+    this.win = new Float32Array(S); this.lookback = new Float32Array(S);
+    this.refr = new Float32Array(S); this.stab = new Float32Array(S);
+    for (m = 0; m < S; m++) {
+      var f = this.refA * Math.pow(2, (m - 69) / 12), w = this.bands[3].winSec;
+      for (b = 0; b < 4; b++) if (f < this.bands[b].fHi) { w = this.bands[b].winSec; break; }
+      this.win[m] = w;
+      this.lookback[m] = w * 0.8 + 0.09;
+      this.refr[m] = w * 0.9 + 0.06;
+      this.stab[m] = f < 250 ? 0.11 : 0.19;      // ennyi ideig kell stabilnak lennie a kijelzéshez
+    }
+
+    // szélessávú leütés (fluxus)
+    var bd = this.bands[3];
+    this.fxLo = Math.max(2, Math.round(150 / bd.binHz));
+    this.fxHi = Math.min((bd.n >> 1) - 1, Math.round(6000 / bd.binHz));
+    this.fxPrev = new Float32Array(bd.n >> 1);
+    this.fxHist = new Float32Array(24); this.fxI = 0;
+    this.flux = 0; this.fluxOnset = false; this.lastFlux = -1e9; this.fxArmed = true;
+
+    this.t = 0; this.prevT = -1; this.rms = 0; this.rmsDb = NEG; this.frames = 0;
+    this.newOnsets = [];        // ebben a képkockában észlelt leütések (alaphang vagy felhangsor)
+    this.newStrict = [];        // ebben a képkockában megszólaló stabil hangok
+    this._tuneAcc = 0; this._tuneW = 0;
+  }
+
+  PitchEngine.MIN = MIN; PitchEngine.MAX = MAX;
+
+  PitchEngine.prototype.midiOf = function (f) {
+    return 69 + 12 * Math.log(f / this.refA) / Math.LN2 - this.tuneCents / 100;
+  };
+  PitchEngine.prototype.freqOf = function (m) {
+    return this.refA * Math.pow(2, (m - 69 + this.tuneCents / 100) / 12);
+  };
+
+  // a legerősebb csúcs a [lo, hi] (midi-egység) tartományban; -1, ha nincs
+  PitchEngine.prototype._find = function (lo, hi) {
+    var pm = this.pkM, n = this.pkN, a = 0, b = n;
+    while (a < b) { var mid = (a + b) >> 1; if (pm[mid] < lo) a = mid + 1; else b = mid; }
+    var best = -1, bd = NEG, db = this.pkDb;
+    for (; a < n && pm[a] <= hi; a++) if (db[a] > bd) { bd = db[a]; best = a; }
+    return best;
+  };
+
+  // nyers spektrumszint (dB) a [lo, hi] midi-tartományban, a megfelelő felbontású sávból
+  PitchEngine.prototype._raw = function (lo, hi) {
+    var f1 = this.freqOf(lo), f2 = this.freqOf(hi);
+    var fc = (f1 + f2) / 2, B = this.bands[3], b;
+    for (b = 0; b < 4; b++) if (fc < this.bands[b].fHi) { B = this.bands[b]; break; }
+    var ka = Math.round(f1 / B.binHz), kb = Math.round(f2 / B.binHz), mx = NEG, db = B.db;
+    var lim0 = Math.max(1, B.kLo - B.W), lim1 = Math.min((B.n >> 1) - 1, B.kHi + B.W);
+    if (ka < lim0) ka = lim0; if (kb > lim1) kb = lim1;
+    var kx = ka;
+    for (var k = ka; k <= kb; k++) if (db[k] > mx) { mx = db[k]; kx = k; }
+    this._rawProm = mx - (kx >= B.kLo && kx <= B.kHi ? B.floor[kx] : mx - 99);
+    return mx;
+  };
+
+  function hSnr(eng, h, n, min) { var q = eng.hpk[h][n]; return q >= 0 && eng.pkSnr[q] >= min; }
+  function hOk(eng, h, n, lvMin) { var q = eng.hpk[h][n]; return q >= 0 && eng.pkSnr[q] >= 6 && eng.pkDb[q] >= lvMin; }
+
+  PitchEngine.prototype.process = function (buf, now) {
+    var len = buf.length, i, k, b, n, h;
+    if (len < this.N) return false;
+    var dt = this.prevT < 0 ? 1 / 60 : Math.min(0.25, Math.max(0.001, now - this.prevT));
+    this.prevT = now; this.t = now; this.frames++;
+
+    // --- szint
+    var s = 0, n1 = Math.min(len, 2048);
+    for (i = len - n1; i < len; i++) s += buf[i] * buf[i];
+    this.rms = Math.sqrt(s / n1);
+    this.rmsDb = 20 * Math.log10(this.rms + 1e-9);
+
+    // --- 1-2. spektrum + csúcsok sávonként
+    var pkN = 0, pkM = this.pkM, pkDb = this.pkDb, pkSnr = this.pkSnr;
+    var frameMax = NEG, gate = -92 - this.sens, first = this.frames <= 1;
+    for (b = 0; b < 4; b++) {
+      var B = this.bands[b], fft = B.fft, re = fft.re, im = fft.im, db = B.db, fl = B.floor, fs = B.fs;
+      fft.run(buf, len);
+      var W = B.W, k0 = Math.max(1, B.kLo - W - 2), k1 = Math.min((B.n >> 1) - 1, B.kHi + W + 2);
+      for (k = k0; k <= k1; k++) db[k] = 10 * Math.log10(re[k] * re[k] + im[k] * im[k] + 1e-20) + fft.normDb;
+      // zajküszöb: csúszó 30. percentilis minden 3. binben (közte lineárisan), időben simítva;
+      // a pillanatnyi és a simított érték közül a magasabb számít (hirtelen szélessávú zaj ellen)
+      var tmp = B.tmp, lastK = -1, lastV = 0;
+      for (k = B.kLo; k <= B.kHi + 2; k += 3) {
+        var a0 = Math.max(k0, k - W), a1 = Math.min(k1, k + W), m = 0;
+        for (i = a0; i <= a1; i++) tmp[m++] = db[i];
+        var sub = tmp.subarray(0, m); sub.sort();
+        var v = sub[(m * 0.3) | 0];
+        if (first) fs[k] = v; else fs[k] += 0.2 * (v - fs[k]);
+        if (fs[k] > v) v = fs[k];
+        fl[k] = v;
+        if (lastK >= 0) { fl[lastK + 1] = lastV + (v - lastV) / 3; fl[lastK + 2] = lastV + 2 * (v - lastV) / 3; }
+        lastK = k; lastV = v;
+      }
+      // csúcsok
+      for (k = B.kLo; k <= B.kHi; k++) {
+        var c = db[k];
+        if (c <= db[k - 1] || c < db[k + 1] || c < gate) continue;
+        var flo = fl[k];
+        if (c - flo < 8) continue;
+        // oldalhullám-szűrés: közeli (±3 bin) erősebb csúcsnál legfeljebb 20, távolabbinál (±7 bin) 34 dB-lel gyengébb
+        var j0 = Math.max(k0, k - 7), j1 = Math.min(k1, k + 7), side = false;
+        for (i = j0; i <= j1; i++) { var dd0 = db[i] - c; if (dd0 > 34 || (dd0 > 20 && i >= k - 3 && i <= k + 3)) { side = true; break; } }
+        if (side) continue;
+        var al = db[k - 1], ga = db[k + 1], den = al - 2 * c + ga;
+        var p = den < -1e-6 ? 0.5 * (al - ga) / den : 0;
+        if (p > 0.5) p = 0.5; else if (p < -0.5) p = -0.5;
+        var f = (k + p) * B.binHz;
+        if (f < B.fLo * 0.97 || f >= B.fHi * 1.03) continue;
+        var pd = c - 0.25 * (al - ga) * p;
+        if (pkN < 600) {
+          pkM[pkN] = this.midiOf(f); pkDb[pkN] = pd; pkSnr[pkN] = pd - flo; pkN++;
+          if (pd > frameMax) frameMax = pd;
+        }
+      }
+    }
+    // rendezés (majdnem rendezett -> beszúrásos)
+    for (i = 1; i < pkN; i++) {
+      var xm = pkM[i], xd = pkDb[i], xs = pkSnr[i]; k = i - 1;
+      while (k >= 0 && pkM[k] > xm) { pkM[k + 1] = pkM[k]; pkDb[k + 1] = pkDb[k]; pkSnr[k + 1] = pkSnr[k]; k--; }
+      pkM[k + 1] = xm; pkDb[k + 1] = xd; pkSnr[k + 1] = xs;
+    }
+    this.pkN = pkN; this.frameMax = frameMax;
+
+    // --- szélessávú leütés (fluxus) a leggyorsabb sávból
+    var BD = this.bands[3], fre = BD.fft.re, fim = BD.fft.im, fp = this.fxPrev, fx = 0;
+    var fnorm = 2000 * Math.pow(10, BD.fft.normDb / 20);
+    for (k = this.fxLo; k <= this.fxHi; k++) {
+      var lg = Math.log(1 + fnorm * Math.sqrt(fre[k] * fre[k] + fim[k] * fim[k]));
+      var d = lg - fp[k]; if (d > 0) fx += d; fp[k] = lg;
+    }
+    fx /= (this.fxHi - this.fxLo + 1);
+    var fh = this.fxHist, srt = this._fxSort || (this._fxSort = new Float32Array(fh.length));
+    srt.set(fh); srt.sort();
+    var med = srt[fh.length >> 1];
+    fh[this.fxI] = fx; this.fxI = (this.fxI + 1) % fh.length;
+    this.flux = fx;
+    var fthr = med * 1.6 + 0.025;
+    this.fluxOnset = false;
+    if (fx > fthr && this.fxArmed && now - this.lastFlux > 0.07 && this.frames > 3) {
+      this.fluxOnset = true; this.lastFlux = now; this.fxArmed = false;
+    } else if (fx < fthr * 0.6) this.fxArmed = true;
+
+    // --- 3. hangonkénti felhang-illesztés
+    var f0Db = this.f0Db, f0Snr = this.f0Snr, f0Pk = this.f0Pk, hc = this.hc, E = this.E;
+    var hpk = this.hpk, LOGH = this.LOGH, alt = this.alt;
+    var lvMin = frameMax - 45;
+    for (n = MIN; n <= MAX; n++) {
+      var c1 = n < 72 ? 0.9 : 0.9 + (n - 72) * 0.09;      // inharmonicitás (cent / (h²-1))
+      var idx = this._find(n - 0.40, n + 0.40);
+      f0Pk[n] = idx; hpk[1][n] = idx;
+      if (idx >= 0) { f0Db[n] = pkDb[idx]; f0Snr[n] = pkSnr[idx]; this.f0Dev[n] = (pkM[idx] - n) * 100; }
+      else { f0Db[n] = NEG; f0Snr[n] = 0; }
+      var hTop = n < 60 ? 8 : 6, cnt = 0, odd = 0, oddPw = 0, tot = 0;
+      for (h = 2; h <= 8; h++) {
+        var ctr = n + LOGH[h];
+        if (h > hTop || ctr > 127) { hpk[h][n] = -1; continue; }
+        var up = 0.30 + c1 * (h * h - 1) / 100; if (up > 0.9) up = 0.9;
+        var q = this._find(ctr - 0.30, ctr + up);
+        hpk[h][n] = q;
+        if (q >= 0 && pkSnr[q] >= 6 && pkDb[q] >= lvMin) {
+          if (h <= 5) cnt++;
+          if (pkSnr[q] >= 10) { tot++; if (h & 1) { odd++; oddPw += Math.pow(10, pkDb[q] / 10); } }
+        }
+      }
+      hc[n] = cnt;
+      this.R[n] = this._raw(n - 0.4, n + 0.4); this.P[n] = this._rawProm;
+      E[n] = idx >= 0 && pkSnr[idx] >= 6 ? pkDb[idx] : NEG;
+      alt[n] = 0;
+      if (n < 60) {
+        this.R3[n] = this._raw(n + LOGH[3] - 0.3, n + LOGH[3] + 0.4);
+        // mély hang: az alaphang a hosszú ablak miatt késve (vagy a mikrofon miatt alig) látszik, de a felhangsor –
+        // benne páratlan felhangokkal, amelyek az oktávval feljebbi hangból hiányoznak – már azonosítja
+        if (tot >= 4 && odd >= 2 && (hOk(this, 2, n, lvMin) || hOk(this, 3, n, lvMin))) {
+          alt[n] = 1;
+          var ea = 10 * Math.log10(oddPw);
+          if (ea > E[n]) E[n] = ea;
+        }
+      }
+    }
+
+    // --- 4. jelenlét: engedékeny + szigorú (alulról felfelé; az alsó hang felhangjai nem számítanak új hangnak)
+    var lenF = this.lenF, len_ = this.len, cand = this.cand, strictNow = this.strictNow, shadowed = this.shadowed;
+    var sv = this.sens, srcList = this.srcList, srcN = 0, isAssumed = this._isAssumed;
+    isAssumed.fill(0);
+    for (i = 0; i < this.assumed.length; i++) isAssumed[this.assumed[i]] = 1;
+    for (n = MIN; n <= MAX; n++) {
+      var has0 = f0Pk[n] >= 0, snr = f0Snr[n], lv = f0Db[n];
+      // engedékeny: egyetlen csúcs zajból is adódhat, ezért vagy nagyon kiemelkedő alaphang kell, vagy alaphang + felhang
+      var LF = false;
+      if (has0 && lv >= frameMax - 40) {
+        if (snr >= 17 - sv) LF = true;
+        else if (snr >= 12 - sv && n < 96) LF = hSnr(this, 2, n, 10) || hSnr(this, 3, n, 10);
+      }
+      lenF[n] = LF ? 1 : 0;
+      len_[n] = LF || alt[n] ? 1 : 0;
+      // szigorú jelölt
+      var C = false;
+      if (has0 && lv >= frameMax - 30 && n >= 31) {
+        if (n >= 84) C = snr >= 20 - sv && lv >= frameMax - 20;
+        else if (n >= 60) C = snr >= 14 - sv && (hOk(this, 2, n, lvMin) || hOk(this, 3, n, lvMin));
+        else {
+          C = snr >= 15 - sv && hOk(this, 2, n, lvMin) && (hOk(this, 3, n, lvMin) || hOk(this, 4, n, lvMin));
+          if (C) {   // a mély hang alaphangja nem lehet sokkal gyengébb a saját felhangjainál (álhang ellen)
+            var hm = NEG;
+            for (h = 2; h <= 4; h++) { var qz = hpk[h][n]; if (qz >= 0 && pkDb[qz] > hm) hm = pkDb[qz]; }
+            if (lv < hm - 18) C = false;
+          }
+        }
+      }
+      cand[n] = C ? 1 : 0;
+      var sh = 0;
+      if (C) {
+        // ha az alaphang egy mélyebb forrás felhangjára esik, nem számít önálló hangnak
+        for (i = 0; i < srcN && !sh; i++) {
+          var src = srcList[i];
+          if (src >= n) continue;
+          var dd = n - src;
+          if (dd > LOGH[12] + 0.6) { if (lv < this.srcMax[src] - 6) sh = 1; continue; }   // sűrű felhang-tartomány
+          var kk = Math.round(Math.pow(2, dd / 12));
+          if (kk >= 2 && kk <= 12) {
+            var off = dd - LOGH[kk];
+            if (off > -0.5 && off < 0.5 + 0.009 * (kk * kk - 1)) sh = 1;
+          }
+        }
+      }
+      shadowed[n] = sh;
+      var S1 = C && !sh;
+      strictNow[n] = S1 ? 1 : 0;
+      if (S1 && this.heard[n]) this.srcUntil[n] = now + 0.45;
+      else if (has0 && snr >= 6 && now < this.srcUntil[n] && this.srcUntil[n] < now + 0.3) this.srcUntil[n] = now + 0.3;
+      if (S1 || isAssumed[n] || (now < this.srcUntil[n] && (has0 || hc[n] >= 2))) {
+        // forrás (lecsengés közben is még egy ideig): a felhangjai feljebb nem számítanak önálló hangnak
+        var smax = NEG;
+        for (h = 1; h <= 6; h++) { var qh = hpk[h][n]; if (qh >= 0 && pkDb[qh] > smax) smax = pkDb[qh]; }
+        this.srcMax[n] = smax;
+        srcList[srcN++] = n;
+      }
+    }
+    this.srcN = srcN;
+
+    // --- 5. időbeli réteg: leütések + a kijelzett hangok simítása
+    var HN = this.HN, hi = this.hi, histT = this.histT, histR = this.histR, histR3 = this.histR3, Eh = this.Eheld;
+    this.newOnsets.length = 0; this.newStrict.length = 0;
+    for (n = MIN; n <= MAX; n++) {
+      // jelenlét-követés
+      if (len_[n]) { Eh[n] = E[n]; if (this.lenSince[n] < 0) this.lenSince[n] = now; }
+      else { Eh[n] -= 40 * dt; if (Eh[n] < NEG) Eh[n] = NEG; this.lenSince[n] = -1; }
+      if (lenF[n]) {
+        // csúszkáló hangmagasság (beszéd, ének) nem zongorahang: a megfigyelés újraindul
+        if (this.fSince[n] < 0) { this.gap[n] = now - this.fGone[n]; this.pSince[n] = now; }   // ennyi ideig nem szólt előtte
+        if (this.fSince[n] < 0 || Math.abs(this.f0Dev[n] - this.devRef[n]) > 22) { this.fSince[n] = now; this.devRef[n] = this.f0Dev[n]; }
+      } else { if (this.fSince[n] >= 0) this.fGone[n] = now; this.fSince[n] = -1; this.pSince[n] = -1; }
+      if (alt[n]) { if (this.aSince[n] < 0) this.aSince[n] = now; } else this.aSince[n] = -1;
+
+      // A nyers szint minimuma a visszatekintési ablakban (a küszöb körüli villogás így nem számít leütésnek).
+      // mnF: ugyanez, de csak a legutóbbi szélessávú leütés óta – a már szóló hangokhoz.
+      var cur = this.R[n], mn = cur, mnF = cur, lb = now - this.lookback[n], lb2 = this.lastOnset[n] + this.refr[n] * 0.55;
+      var curP = this.P[n], mnP = curP, histP = this.histP, tF = this.lastFlux - 0.04;
+      if (lb2 > lb) lb = lb2;
+      for (i = 1; i < HN; i++) {
+        var q2 = (hi - i + HN) % HN, ht = histT[q2];
+        if (ht < lb) break;
+        var ev = histR[q2 * 128 + n]; if (ev < mn) mn = ev;
+        if (ht >= tF && ev < mnF) mnF = ev;
+        ev = histP[q2 * 128 + n]; if (ev < mnP) mnP = ev;
+      }
+      histR[hi * 128 + n] = cur; histP[hi * 128 + n] = curP;
+      // alaphang-leütés: az alaphang rövid ideje folyamatosan látszik, és a nyers szintje hirtelen megnőtt
+      if (lenF[n]) {
+        var need = (f0Snr[n] >= 18 && f0Db[n] >= frameMax - 20) ? 0.02 : 0.05;
+        // egy jóval erősebb szomszéd (±1–2 félhang) megütésekor annak kiszélesedő csúcsa ide is "átlóg": tovább kell figyelni
+        var fn = f0Db[n] + 12;
+        if (f0Db[n - 1] >= fn || f0Db[n + 1] >= fn || f0Db[n - 2] >= fn || f0Db[n + 2] >= fn) need = 0.12;
+        if (now - this.fSince[n] >= need && now - this.lastOnset[n] > this.refr[n]) {
+          // Szólt-e már a hang (vagy egy másik hang ráeső felhangja) közvetlenül az emelkedés előtt?
+          // (pSince: a jelenlét kezdete; a hangmagasság megugrása a megfigyelést újraindítja, de a hang attól még szólt)
+          var was = this.gap[n] < 0.4 || this.pSince[n] < now - this.lookback[n] - 0.05;
+          var fire;
+          if (!was) {
+            // új hang: a szintnek ÉS a zajküszöb fölé emelkedésének is nőnie kell (egy szomszédos leütés széles sávú
+            // koppanása a nyers szintet megemeli, de a kiemelkedést nem)
+            fire = cur - mn >= 6 && curP - mnP >= 6;
+            // Ha a hang a legutóbbi szélessávú leütés ELŐTT is ugyanilyen erős volt, akkor nem most szólalt meg:
+            // a halkan csengő hangot csak eltakarta egy pillanatra a másik leütés koppanása, és most "újra előbukkan".
+            if (fire && now - this.lastFlux < 0.6 && cur - this.rawAt(n, this.lastFlux - 0.05) < 4) fire = false;
+          } else {
+            // már szóló hang: a szintje lebegés miatt magától is megemelkedhet. Valódi újraütésnél az emelkedés
+            // egy szélessávú leütéssel KEZDŐDIK – ezért csak az azóta mért emelkedés számít.
+            // Ha közben egy nála erősebb szomszéd (fél vagy egész hanggal odébb) szól, annak a csúcsa "átlóg" ide:
+            // az emelkedés akkor nem megbízható.
+            var nb = cur + 3, nb2 = cur + 12;
+            // Egy szélessávú leütéshez hangonként legfeljebb egy leütés tartozik: ha a hang ettől a leütéstől már
+            // megszólalt, a későbbi (lebegés okozta) lassú erősödése nem új leütés.
+            fire = now - this.lastFlux <= this.win[n] + 0.15 && cur - mnF >= 5 && this.lastOnset[n] < this.lastFlux - 0.04 &&
+                   f0Db[n - 1] < nb && f0Db[n + 1] < nb && f0Db[n - 2] < nb2 && f0Db[n + 2] < nb2;
+          }
+          if (fire) { this.lastOnset[n] = now; this.onsetKind[n] = was ? 2 : 1; this.onsetLevel[n] = Eh[n]; this.newOnsets.push(n); }
+        }
+      }
+      // felhangsor-leütés (mély hangok): a 3. felhang nyers szintje nőtt meg a legutóbbi szélessávú leütés óta
+      if (n < 60) {
+        var c3 = this.R3[n], m3 = c3;
+        for (i = 1; i < HN; i++) {
+          var q3 = (hi - i + HN) % HN;
+          if (histT[q3] < tF) break;
+          var e3 = histR3[q3 * 128 + n]; if (e3 < m3) m3 = e3;
+        }
+        histR3[hi * 128 + n] = c3;
+        if (alt[n] && now - this.aSince[n] >= 0.03 && c3 - m3 >= 6 && now - this.lastFlux <= 0.35 && now - this.lastAltOnset[n] > this.refr[n] && now - this.lastOnset[n] > this.refr[n]) {
+          this.lastAltOnset[n] = now; this.newOnsets.push(n);
+        }
+      }
+
+      // stabil szigorú jelenlét (kijelzés)
+      var sN = strictNow[n];
+      if (sN) { this.offCnt[n] = 0; if (this.candSince[n] < 0) this.candSince[n] = now; }
+      else { if (this.offCnt[n] < 250) this.offCnt[n]++; if (this.offCnt[n] >= 2) this.candSince[n] = -1; }
+      if (!this.heard[n]) {
+        if (sN && this.candSince[n] >= 0 && now - this.candSince[n] >= this.stab[n]) {
+          this.heard[n] = 1; this.heardSince[n] = now; this.newStrict.push(n);
+        }
+      } else if (this.offCnt[n] >= 4) this.heard[n] = 0;
+    }
+    histT[hi] = now; this.hi = (hi + 1) % HN;
+
+    // --- automatikus hangolás-követés (biztos, közepes magasságú hangokból)
+    if (this.autoTune) {
+      for (n = 48; n <= 84; n++) if (strictNow[n] && f0Snr[n] > 25) { this._tuneAcc += this.f0Dev[n]; this._tuneW++; }
+      if (this._tuneW >= 40) {
+        var avg = this._tuneAcc / this._tuneW;
+        this.tuneCents += 0.5 * avg;
+        if (this.tuneCents > 60) this.tuneCents = 60; else if (this.tuneCents < -60) this.tuneCents = -60;
+        this._tuneAcc = 0; this._tuneW = 0;
+      }
+    }
+    return true;
+  };
+
+  // mennyit emelkedett a hang nyers szintje `since` óta (a legkisebb azóta mért értékhez képest)
+  PitchEngine.prototype.riseSince = function (n, since) {
+    if (n > MAX) return 0;
+    var HN = this.HN, mn = this.R[n];
+    for (var i = 1; i <= HN; i++) {
+      var q = (this.hi - i + HN) % HN;
+      if (this.histT[q] < since) break;
+      var v = this.histR[q * 128 + n]; if (v < mn) mn = v;
+    }
+    return this.R[n] - mn;
+  };
+
+  // a hang nyers szintje a t időpontban (az előzményből; ha nincs ilyen régi adat, a legrégebbi)
+  PitchEngine.prototype.rawAt = function (n, t) {
+    var HN = this.HN, v = this.R[n];
+    for (var i = 1; i <= HN; i++) {
+      var q = (this.hi - i + HN) % HN;
+      if (this.histT[q] < -1e8) break;
+      v = this.histR[q * 128 + n];
+      if (this.histT[q] <= t) break;
+    }
+    return v;
+  };
+
+  // az épp (stabilan) hallott hangok – kijelzéshez
+  PitchEngine.prototype.heardNotes = function () {
+    var out = [];
+    for (var n = MIN; n <= MAX; n++) if (this.heard[n]) out.push(n);
+    return out;
+  };
+
+  // a legerősebb, tisztán azonosítható hang (hangoláshoz); null, ha nincs
+  PitchEngine.prototype.dominant = function () {
+    var best = -1, bd = NEG;
+    for (var n = 36; n <= 96; n++) if (this.strictNow[n] && this.f0Db[n] > bd) { bd = this.f0Db[n]; best = n; }
+    if (best < 0) return null;
+    return { midi: best, cents: this.f0Dev[best], db: bd, freq: this.freqOf(best + this.f0Dev[best] / 100) };
+  };
+
+  // ------------------------------------------------------- StepVerifier ----
+  // A tanuló mód ellenőrzője: egy "lépés" = egyszerre leütendő hangok.
+  // Alapelv: egy várt hang akkor fogadható el azonnal, ha a leütése önálló bizonyítékon alapul
+  // (az alaphangja nem egy másik, mélyebb hang felhangja). Ha egy mélyebb hang is megmagyarázhatná,
+  // megnézi, valójában nem az szólt-e (rossz oktáv, az előző hang megismétlése, vagy ugyanannak a
+  // leütésnek egy később észlelt felhangja) – és csak akkor fogadja el, ha nem.
+  function StepVerifier(engine) {
+    this.eng = engine;
+    this.exp = []; this.T0 = 0; this.active = false;
+    this.isExp = new Uint8Array(128);
+    this.hitAt = new Float64Array(128);
+    this.viaAlt = new Uint8Array(128); this.path = [];
+    this.consumed = new Float64Array(128).fill(-1e9);   // eddig az időpontig a hang leütései fel vannak használva
+    this.ringing = new Uint8Array(128);                 // a lépés kezdetekor már szólt
+    this.ringMin = new Float32Array(128); this.ringUp = new Uint8Array(128); this.ringStart = new Float64Array(128);
+    this.ringSince = new Float64Array(128); this.lastDone = -1e9;
+    this.recent = [];                                   // korábban helyesen leütött, még csengő hangok
+    this.isRecent = new Uint8Array(128);
+    this.hitTime = new Float64Array(128).fill(-1e9); this.hitLvl = new Float32Array(128).fill(NEG);
+    this.strikeT = new Float64Array(128).fill(-1e9);    // a hang leütésének becsült ideje (a szélessávú leütésből)
+    this.lastSeen = new Float64Array(128).fill(-1e9);
+    this.wrongSeen = new Float64Array(128).fill(-1e9);
+    this.wrongNow = []; this.newWrong = []; this.justHit = [];
+    this.fluxAt = -1e9; this.fluxLvl = new Float32Array(128); this.fluxUsed = -1e9; this.fluxFirst = -1e9; this.nHit = 0;
+    this.done = false; this.strictOctave = true;
+    this.manualOnly = false;                            // igaz: csak a manualHit() számít (MIDI / érintés)
+  }
+
+  StepVerifier.prototype.setStep = function (notes, now) {
+    var e = this.eng, i, n;
+    for (i = 0; i < this.exp.length; i++) this.isExp[this.exp[i]] = 0;
+    this.exp = [];
+    for (i = 0; i < notes.length; i++) {
+      n = notes[i];
+      if (n >= MIN && n <= MAX && !this.isExp[n]) { this.isExp[n] = 1; this.exp.push(n); }
+    }
+    this.exp.sort(function (a, b) { return a - b; });
+    this.T0 = now; this.active = this.exp.length > 0; this.done = false;
+    this.fluxAt = -1e9; this.fluxFirst = -1e9; this.nHit = 0;
+    // ha a játékos megelőzte a programot: a lépés élesítése előtti (még fel nem használt) leütés is számít
+    var early = e.lastFlux > this.fluxUsed && e.lastFlux > now - 0.3;
+    if (early) this.fluxAt = e.lastFlux;
+    for (i = 0; i < this.exp.length; i++) {
+      n = this.exp[i];
+      this.hitAt[n] = 0; this.viaAlt[n] = 0;
+      this.ringing[n] = e.lenF[n] ? 1 : 0; this.ringMin[n] = 1e9; this.ringUp = this.ringUp; this.ringSince[n] = -1;
+      // az előző leütés csak akkor "ült be" teljesen, amikor az elemzőablak megtelt vele: addig a szint még magától is nő
+      this.ringStart[n] = Math.max(now, this.lastDone + e.win[n] + 0.03);
+      if (early) this.fluxLvl[n] = e.rawAt(n, e.lastFlux - 0.03);
+    }
+    this._assume(now);
+  };
+
+  StepVerifier.prototype.clear = function () {
+    for (var i = 0; i < this.exp.length; i++) this.isExp[this.exp[i]] = 0;
+    this.active = false; this.exp = []; this.eng.assumed = [];
+  };
+
+  // a már elhangzott leütések ne számítsanak a következő lépéshez (pl. kihagyás, ugrás után)
+  StepVerifier.prototype.flush = function (now) { this.consumed.fill(now); this.fluxUsed = now; };
+
+  // mindent elfelejt (pl. új darab, ugrás)
+  StepVerifier.prototype.reset = function () {
+    this.clear(); this.recent.length = 0; this.isRecent.fill(0);
+    this.consumed.fill(-1e9); this.hitTime.fill(-1e9); this.strikeT.fill(-1e9); this.wrongSeen.fill(-1e9);
+    this.fluxUsed = -1e9; this.lastDone = -1e9; this.wrongNow.length = 0; this.newWrong.length = 0; this.justHit.length = 0;
+  };
+
+  // a motor "feltételezett forrásai": a várt és a korábban helyesen leütött, még csengő hangok
+  StepVerifier.prototype._assume = function (now) {
+    var a = this.exp.slice(), r = this.recent, k = 0, i, e = this.eng;
+    this.isRecent.fill(0);
+    for (i = 0; i < r.length; i++) {
+      var m = r[i];
+      if (e.len[m] || e.heard[m]) this.lastSeen[m] = now;
+      if (now - this.lastSeen[m] > 0.4 || now - this.hitTime[m] > 30) continue;      // elhalt
+      r[k++] = m;
+      if (this.isExp[m]) continue;
+      // ha azóta erősen újra megütötték, már nem "csak cseng"
+      if (e.lastOnset[m] > this.hitTime[m] + 0.35 && e.onsetLevel[m] >= this.hitLvl[m] - 12) continue;
+      this.isRecent[m] = 1; if (a.indexOf(m) < 0) a.push(m);
+    }
+    r.length = k;
+    e.assumed = a;
+  };
+
+  // a pm (midi-egység) helyen lévő csúcsot megmagyarázza-e valamelyik feltételezett hang (kivéve `skip`) felhangja?
+  StepVerifier.prototype._explained = function (pm, skip, skip2, freshOnly) {
+    var as = this.eng.assumed, LOGH = this.eng.LOGH, tMin = this.eng.t - 0.6;
+    for (var j = 0; j < as.length; j++) {
+      var a = as[j];
+      if (a === skip || a === skip2) continue;
+      // egy frissen megerősödött csúcsot csak most (vagy az imént) megütött hang magyarázhat, régóta csengő nem
+      if (freshOnly && !this.isExp[a] && this.hitTime[a] < tMin) continue;
+      var d = pm - a;
+      if (d < -0.5) continue;
+      var kk = Math.round(Math.pow(2, d / 12));
+      if (kk > 16) return true;
+      if (kk >= 1) { var off = d - LOGH[kk]; if (off > -0.5 && off < 0.5 + 0.009 * (kk * kk - 1)) return true; }
+    }
+    return false;
+  };
+
+  // a felhangsorból felismert mély hang bizonyítéka független-e a többi feltételezett hangtól?
+  // (egy fölötte szóló akkord felhangjai is kiadhatják a "hiányzó alaphang" felhangsorát)
+  StepVerifier.prototype._altIndependent = function (n) {
+    var e = this.eng, cnt = 0, odd = 0;
+    for (var h = 2; h <= 8; h++) {
+      var q = e.hpk[h][n];
+      if (q < 0 || e.pkSnr[q] < 10) continue;
+      if (this._explained(e.pkM[q], n)) continue;
+      cnt++; if (h & 1) odd++;
+    }
+    return cnt >= 3 && odd >= 1;
+  };
+
+  // n hány saját felhangja (2–5.) erősödött meg frissen? (valódi leütésnél több is; egy ráeső másik hangnál csak egy)
+  StepVerifier.prototype._harmRises = function (n, on) {
+    var e = this.eng, c = 0, since = on - 0.3;
+    this._harmFree = 0;                                // ennyi felhang tudna önálló bizonyítékot adni
+    for (var h = 2; h <= 6; h++) {
+      var pos = n + e.LOGH[h];
+      // csak az számít, amit a többi (várt vagy csengő) hang felhangja nem magyaráz meg
+      if (pos > MAX || this._explained(pos, n, -1, true)) continue;
+      this._harmFree++;
+      var qh = e.hpk[h][n];
+      if (qh >= 0 && e.pkSnr[qh] >= 10 && e.riseSince(Math.round(pos), since) >= 6) c++;
+    }
+    return c;
+  };
+
+  // Megmagyarázhatja-e az n hang `on` időpontú leütését egy mélyebb hang?
+  // Visszaad: 0 = önálló; 1 = függő/gyanús (rövid megerősítési idő kell);
+  //           2 = elvetendő, a _culprit hang szólt (rossz hang);
+  //           3 = elvetendő csendben (nem valódi leütés: egy csengő hang felhangja erősödött meg)
+  StepVerifier.prototype._depCheck = function (n, on) {
+    var e = this.eng, LOGH = e.LOGH, res = 0, k, h;
+    this._delay = 0.12; this._culprit = -1; this._depExp = false; this._depHit = false;
+    var q0 = e.f0Pk[n], wn = e.win[n], since = on - 0.35;
+    var lim = Math.max(e.f0Db[n], e.E[n]) - 16;
+    for (k = 2; k <= 12; k++) {
+      var L = Math.round(n - LOGH[k]);
+      if (L < MIN) break;
+      var off = n - L - LOGH[k];                       // L k. felhangja ennyivel van n alatt (félhang)
+      if (off < -0.4 || off > 0.4 + 0.009 * (k * k - 1)) continue;
+      if (this.isExp[L]) { res = Math.max(res, 1); this._depExp = true; if (k <= 6 && this.hitAt[L]) this._depHit = true; continue; }
+      if (this._harmOfExp(L)) continue;                // L maga is egy várt hang felhangja: amit róla látunk, azt a várt hang magyarázza
+      // L nemrég elfogadott hang, és n "leütése" közvetlenül utána jön: ez még L leütésének később észlelt felhangja
+      if (this.isRecent[L] && on < Math.min(this.hitTime[L], this.strikeT[L] + 0.12) + wn * 0.6 + 0.03) return 3;
+      // Megütötték-e MOST L-t? Akkor L azon felhangjai is frissen megerősödtek, amelyek nem esnek n felhangjaira
+      // (oktávnál pl. a páratlanok). A régóta csengő L felhangjai nem erősödnek, azok nem számítanak.
+      var cnt = 0;
+      for (h = 1; h <= 9; h++) {
+        if (h % k === 0) continue;
+        var c = L + LOGH[h];
+        if (c > 127) break;
+        var q = h === 1 ? e._find(L - 0.4, L + 0.4) : e._find(c - 0.3, c + 0.3 + 0.009 * (h * h - 1));
+        if (q < 0 || q === q0 || e.pkSnr[q] < 12 || e.pkDb[q] < lim) continue;
+        // ha L-t az előző lépésben (jogosan) épp most ütötték le, az akkori megerősödés nem számít új leütésnek
+        var rc = Math.round(c), sinceH = Math.max(since, this.strikeT[L] + e.win[rc] + 0.04);
+        if (sinceH >= e.t || e.riseSince(rc, sinceH) < 6) continue;
+        if (!this._explained(e.pkM[q], n, L, true)) cnt++;
+      }
+      if (cnt >= 3) { this._culprit = L; return 2; }
+      if (cnt >= 1) res = Math.max(res, 1);
+      // L cseng (és nem most ütötték meg): a ráeső felhang lebegés miatt magától is megerősödhet.
+      // Ha n-t tényleg megütötték, n saját felhangjai is megszólalnak.
+      if ((e.len[L] || e.heard[L] || this.isRecent[L]) && n < 84 &&
+          Math.max(e.riseSince(n + 12, on - e.lookback[n] - 0.1), e.riseSince(n + 19, on - e.lookback[n] - 0.1)) < 4) return 3;
+    }
+    return res;
+  };
+
+  // m egy (másik) várt hang felhangjára esik?
+  StepVerifier.prototype._harmOfExp = function (m) {
+    var LOGH = this.eng.LOGH, exp = this.exp;
+    for (var i = 0; i < exp.length; i++) {
+      var d = m - exp[i];
+      if (d < 11.5) continue;
+      var kk = Math.round(Math.pow(2, d / 12));
+      if (kk >= 2 && kk <= 12) { var off = d - LOGH[kk]; if (off > -0.5 && off < 0.5 + 0.009 * (kk * kk - 1)) return true; }
+    }
+    return false;
+  };
+
+  // n alaphangja egy már elfogadott, vele együtt várt mélyebb hang (2–6.) felhangja?
+  StepVerifier.prototype._depOnHit = function (n) {
+    var LOGH = this.eng.LOGH;
+    for (var k = 2; k <= 6; k++) {
+      var L = Math.round(n - LOGH[k]);
+      if (L < MIN) break;
+      if (Math.abs(n - L - LOGH[k]) < 0.4 && this.isExp[L] && this.hitAt[L]) return true;
+    }
+    return false;
+  };
+
+  // érintéssel (a képernyő billentyűzetén) leütött várt hang
+  StepVerifier.prototype.manualHit = function (n, now) {
+    if (!this.active || !this.isExp[n] || this.hitAt[n]) return false;
+    this.hitAt[n] = now; this.justHit.push(n); this._manual = true;
+    return true;
+  };
+
+  // megszólalt-e `since` óta olyan (most megütött) hang, amely se nem várt, se nem korábbról csengő?
+  StepVerifier.prototype._freshWrong = function (since) {
+    var e = this.eng;
+    for (var n = MIN; n <= MAX; n++) {
+      if (!e.strictNow[n] || this.isExp[n] || this.recent.indexOf(n) >= 0) continue;
+      if (e.lastOnset[n] >= since || e.lastAltOnset[n] >= since) return true;
+    }
+    return false;
+  };
+
+  // egy leütés elbírálása: true = elfogadva
+  StepVerifier.prototype._judge = function (n, on, now) {
+    // Már szóló (csengő) hang "újraütése": valódi leütésnél a hang saját felhangjai is megerősödnek. Ha nem, akkor
+    // csak egy másik leütés koppanása vagy szomszédja emelte meg a szintjét. (A valódi ismétlést a (B) út is elfogadja.)
+    // Csak akkor döntünk így, ha legalább két felhang tudna önálló bizonyítékot adni (nem esik más friss hang felhangjára).
+    var e0 = this.eng;
+    if (e0.onsetKind[n] === 2 && on === e0.lastOnset[n] && n < 84 && this._harmRises(n, on) < 1) {
+      var sure = this._harmFree >= 2;
+      if (!sure) {
+        // A felhangok nem tudnak dönteni (mind egy frissen megütött másik hang felhangjára esik). Valódi leütésnél a szint
+        // nagyot ugrik a leütés előttihez képest; a lebegés vagy egy későn beérő felhang csak néhány decibelt emel.
+        var base = e0.rawAt(n, (on - e0.lastFlux < 0.5 ? e0.lastFlux : on) - 0.06);
+        if (e0.R[n] - base >= 10) sure = false;         // elég nagy ugrás: mehet tovább a szokásos vizsgálatra
+        else if (now - on < 0.1) return false;          // még nőhet: várunk pár képkockát
+        else sure = true;
+      }
+      if (sure) { this._dc = 3; if (on > this.consumed[n]) this.consumed[n] = on; return false; }
+    }
+    var dc = this.strictOctave ? this._depCheck(n, on) : 0;
+    this._dc = dc;
+    if (dc >= 2) {
+      if (on > this.consumed[n]) this.consumed[n] = on;            // ez a leütés nem számít
+      var c = this._culprit;
+      if (dc === 2 && c >= 0 && this.eng.heard[c] && this.recent.indexOf(c) < 0 && now - this.wrongSeen[c] > 0.8) { this.wrongSeen[c] = now; this.newWrong.push(c); }
+      return false;
+    }
+    if (dc === 0) return true;
+    if (this._depExp) return (this._depHit || now - on >= 0.1) && !this._freshWrong(on - 0.3);
+    return now - on >= this._delay;
+  };
+
+  StepVerifier.prototype.update = function (now) {
+    var e = this.eng, exp = this.exp, i, n;
+    this.justHit.length = 0; this.newWrong.length = 0; this.wrongNow.length = 0;
+    if (!this.active) return this;
+    if (this.manualOnly) {
+      // MIDI-billentyűzet / érintés: csak a közvetlenül jelzett leütések számítanak, a mikrofon nem dönt
+      for (i = 0; i < exp.length; i++) if (!this.hitAt[exp[i]]) return this;
+      this.done = true; this.active = false; this.lastDone = now;
+      for (i = 0; i < exp.length; i++) { this.hitTime[exp[i]] = now; this.strikeT[exp[i]] = now; }
+      return this;
+    }
+    this._assume(now);
+
+    // szélessávú leütés a lépés kezdete óta: a még csengő (ismételt) hangokhoz
+    if (e.fluxOnset && now > this.T0 + 0.03 && e.lastFlux > this.fluxUsed) {
+      this.fluxAt = now;
+      for (i = 0; i < exp.length; i++) this.fluxLvl[exp[i]] = e.R[exp[i]];
+    }
+
+    // nem várt, stabilan hallott hangok (kijelzéshez / hibaszámláláshoz)
+    for (n = MIN; n <= MAX; n++) {
+      if (!e.heard[n] || this.isExp[n] || this.isRecent[n] || this.recent.indexOf(n) >= 0) continue;
+      this.wrongNow.push(n);
+      if (e.heardSince[n] > this.T0 - 0.15 && e.heardSince[n] > this.wrongSeen[n]) { this.wrongSeen[n] = now; this.newWrong.push(n); }
+    }
+
+    var all = true;
+    for (i = 0; i < exp.length; i++) {
+      n = exp[i];
+      if (this.hitAt[n]) continue;
+      var ok = false, on = e.lastOnset[n], onA = e.lastAltOnset[n];
+      // (A) friss, még fel nem használt alaphang-leütés
+      var path = '';
+      if (on > this.consumed[n] && on > this.T0 - 0.35) {
+        // régebbi leütést csak akkor fogadunk el, ha a hang még szól (a zaj egy-egy felvillanása addigra eltűnik)
+        if (now - on > 0.15 && !e.len[n]) this.consumed[n] = on;
+        else { ok = this._judge(n, on, now); if (ok) path = 'A' + this._dc; }
+      }
+      // (A') mély hang a felhangsorából (az alaphang csak később vagy alig látszik) – ha a bizonyíték független
+      if (!ok && onA > this.consumed[n] && onA > this.T0 - 0.35 && e.alt[n] && this._altIndependent(n) && this._harmRises(n, onA) >= 2) {
+        ok = this._judge(n, onA, now);
+        if (ok) { this.viaAlt[n] = 1; path = 'alt' + this._dc; }
+      }
+      // (A2) a hang egy másik, már elfogadott várt hang felhangjára esik (pl. oktáv): külön nem igazolható,
+      //      ezért elég, ha szól – a saját (lassabban észlelhető) leütésére nem várunk
+      if (!ok && e.lenF[n] && now - e.fSince[n] >= (e.win[n] > 0.25 ? 0.1 : 0.05) && this._depOnHit(n) && !this._freshWrong(this.T0 - 0.1)) { ok = true; path = 'A2'; }
+      // (B) a hang már a lépés előtt is szólt (ismétlés), és saját leütést nem találtunk:
+      //     új (szélessávú) leütés + a hang erősödött, vagy legalább nem halkul tovább
+      if (!ok && this.ringing[n] && this.fluxAt >= Math.max(this.T0 + 0.03, this.hitTime[n] + 0.15) && e.lenF[n]) {
+        var dtF = now - this.fluxAt, cur = e.R[n], base = this.fluxLvl[n];
+        if (dtF >= 0.1 && !this._freshWrong(this.fluxAt - 0.15)) {
+          if (cur >= base + 3) { ok = true; path = 'B+'; }
+          // újraütéskor a még csengő húr szintje akár csökkenhet is (ellenfázis) – elég, ha a hang nem halt el
+          else if (dtF >= 0.18 && cur >= base - 8) { ok = true; path = 'B='; }
+        }
+      }
+      if (ok) { this.hitAt[n] = now; this.path[n] = path; this.justHit.push(n); if (!this.nHit++) this.fluxFirst = Math.max(e.lastFlux, this.fluxAt); }
+      else all = false;
+    }
+    if (all && exp.length) {
+      this.done = true; this.active = false;
+      for (i = 0; i < exp.length; i++) {
+        n = exp[i];
+        // a felhangsorból elfogadott mély hang alaphang-leütése csak ezután fut be: az is ehhez a leütéshez tartozik
+        var own = this.path[n] && this.path[n].charAt(0) === 'A' && this.path[n] !== 'A2';
+        var until = own ? now - 0.001 : now + e.win[n] * 0.9 + 0.05;
+        this.consumed[n] = Math.max(this.consumed[n], e.lastOnset[n], e.lastAltOnset[n], until);
+        if (this.recent.indexOf(n) < 0) this.recent.push(n);
+        this.hitTime[n] = now; this.hitLvl[n] = e.Eheld[n]; this.lastSeen[n] = now;
+        // a lépéshez tartozó szélessávú leütés ideje; ha ilyet nem láttunk, az elfogadásé
+        this.strikeT[n] = this.fluxFirst > this.T0 - 0.35 && this.fluxFirst <= now ? this.fluxFirst : now;
+      }
+      this.fluxUsed = Math.max(this.fluxUsed, this.fluxFirst, this.fluxAt);
+      this.lastDone = now;
+    }
+    return this;
+  };
+
+  root.PitchEngine = PitchEngine;
+  root.StepVerifier = StepVerifier;
+  root.FFT = FFT;
+  if (typeof module !== 'undefined' && module.exports) module.exports = { PitchEngine: PitchEngine, FFT: FFT, StepVerifier: StepVerifier };
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+/* ============================================================================
+   Darabtár + kottaértelmező + MIDI-beolvasó.
+
+   Kottajelölés (egy szólam = egy szöveg, szóközzel tagolva):
+     C4  F#4  Bb3        hang (nemzetközi hangnév + oktáv; C4 = középső C)
+     C4:4                hossz az `unit` egységben (alapértelmezés: 1); lehet tört is: D5:2/3
+     C4~1                ujjrend (1 = hüvelykujj … 5 = kisujj)
+     [C3 E3 G3]:8        akkord
+     r:2                 szünet
+     _:3                 az előző hang(ok) meghosszabbítása (átkötés)
+     X*4                 ismétlés: az X jel négyszer
+     |                   ütemvonal (az értelmező ellenőrzi, hogy az ütem hossza stimmel-e)
+   ========================================================================== */
+(function (root) {
+  'use strict';
+
+  var LETTER = { C: 0, D: 2, E: 4, F: 5, G: 7, A: 9, B: 11 };
+
+  function pitch(tok) {
+    var m = /^([A-G])(bb|b|##|#)?(-?\d)$/.exec(tok);
+    if (!m) throw new Error('Rossz hangnév: ' + tok);
+    var acc = m[2] === '#' ? 1 : m[2] === 'b' ? -1 : m[2] === '##' ? 2 : m[2] === 'bb' ? -2 : 0;
+    return { m: 12 * (parseInt(m[3], 10) + 1) + LETTER[m[1]] + acc, sp: m[1] + (m[2] || '') };
+  }
+  function num(s) {
+    if (s.indexOf('/') >= 0) { var p = s.split('/'); return parseFloat(p[0]) / parseFloat(p[1]); }
+    return parseFloat(s);
+  }
+
+  // egy szólam értelmezése -> hangok listája (idő és hossz negyedekben)
+  function parseVoice(str, song, hand, out, errs) {
+    var unitBeats = 4 / song.unit, barUnits = song.ts[0] * song.unit / song.ts[1], pickup = song.pickup || 0;
+    var toks = str.match(/\[[^\]]+\][^\s]*|[^\s]+/g) || [], t = 0, last = [], bar = pickup ? 0 : 1, barStart = 0;
+    for (var i = 0; i < toks.length; i++) {
+      var tok = toks[i];
+      if (tok === '|') {
+        var want = (bar === 0) ? pickup : barUnits;
+        if (Math.abs((t - barStart) - want) > 0.02) errs.push(song.id + ' ' + (hand ? 'bal' : 'jobb') + ' kéz, ' + bar + '. ütem: ' + (t - barStart).toFixed(2) + ' egység ' + want + ' helyett');
+        bar++; barStart = t;
+        continue;
+      }
+      var rep = 1, rm = /\*(\d+)$/.exec(tok);
+      if (rm) { rep = parseInt(rm[1], 10); tok = tok.slice(0, rm.index); }
+      var dur = 1, dm = /:([\d./]+)$/.exec(tok);
+      if (dm) { dur = num(dm[1]); tok = tok.slice(0, dm.index); }
+      for (var r = 0; r < rep; r++) {
+        if (tok === 'r') { last = []; }
+        else if (tok === '_') { for (var k = 0; k < last.length; k++) last[k].d += dur * unitBeats; }
+        else {
+          var names = tok.charAt(0) === '[' ? tok.slice(1, -1).trim().split(/\s+/) : [tok];
+          last = [];
+          for (var j = 0; j < names.length; j++) {
+            var parts = names[j].split('~'), p = pitch(parts[0]);
+            var n = { t: t * unitBeats, d: dur * unitBeats, m: p.m, h: hand, sp: p.sp };
+            if (parts[1]) n.f = parseInt(parts[1], 10);
+            out.push(n); last.push(n);
+          }
+        }
+        t += dur;
+      }
+    }
+    return t * unitBeats;
+  }
+
+  // darab-leírásból lejátszható darab
+  function build(song) {
+    var notes = [], errs = [], len = 0, i;
+    ['R', 'L'].forEach(function (key, hand) {
+      var v = song[key];
+      if (!v) return;
+      if (typeof v === 'string') v = [v];
+      for (i = 0; i < v.length; i++) len = Math.max(len, parseVoice(v[i], song, hand, notes, errs));
+    });
+    return finish({
+      id: song.id, title: song.title, composer: song.composer || '', years: song.years || '', group: song.group,
+      level: song.level || 1, bpm: song.bpm || 80, ts: song.ts, info: song.info || '', credit: song.credit || '',
+      pickupBeats: (song.pickup || 0) * 4 / song.unit, secBars: song.sec || 4, notes: notes, errors: errs, builtin: true
+    }, len);
+  }
+
+  // közös utómunka: rendezés, azonos hangok összevonása, ütemek, hangterjedelem
+  function finish(p, len) {
+    var ns = p.notes, i;
+    ns.sort(function (a, b) { return a.t - b.t || a.m - b.m; });
+    // ugyanabban a pillanatban ugyanaz a hang kétszer (két szólamban): egyet tartunk meg, a hosszabbat
+    var keep = [];
+    for (i = 0; i < ns.length; i++) {
+      var a = ns[i], dup = null;
+      for (var j = keep.length - 1; j >= 0 && keep[j].t > a.t - 1e-4; j--) if (keep[j].m === a.m) { dup = keep[j]; break; }
+      if (dup) { if (a.d > dup.d) dup.d = a.d; } else keep.push(a);
+    }
+    p.notes = ns = keep;
+    var lo = 127, hi = 0, end = len || 0, hands = [0, 0];
+    for (i = 0; i < ns.length; i++) {
+      if (ns[i].m < lo) lo = ns[i].m; if (ns[i].m > hi) hi = ns[i].m;
+      if (ns[i].t + ns[i].d > end) end = ns[i].t + ns[i].d;
+      hands[ns[i].h]++;
+    }
+    p.lo = lo; p.hi = hi; p.len = end; p.hasR = hands[0] > 0; p.hasL = hands[1] > 0;
+    p.barBeats = p.ts[0] * 4 / p.ts[1];
+    p.bars = Math.max(1, Math.ceil((end - p.pickupBeats) / p.barBeats - 1e-6));
+    return p;
+  }
+
+  // ütem -> idő (negyedekben); az 1. ütem a felütés után kezdődik
+  function barStart(p, bar) { return p.pickupBeats + (bar - 1) * p.barBeats; }
+
+  // gyakorló szakaszok: `secBars` ütemenként (az utolsó, túl rövid szakasz az előzőhöz csatlakozik)
+  function sections(p) {
+    var out = [], n = p.secBars, b = 1;
+    while (b <= p.bars) {
+      var e = Math.min(p.bars, b + n - 1);
+      if (p.bars - e > 0 && p.bars - e < Math.ceil(n / 2)) e = p.bars;
+      out.push({ from: b === 1 ? 0 : barStart(p, b), to: e === p.bars ? p.len + 1e-6 : barStart(p, e + 1), b0: b, b1: e });
+      b = e + 1;
+    }
+    return out;
+  }
+
+  // lépések: az egyszerre leütendő hangok csoportjai a kiválasztott kéz(ek)re és szakaszra
+  function steps(p, hands, from, to) {
+    var out = [], cur = null, eps = Math.max(0.03, 0.035 * p.bpm / 60);
+    for (var i = 0; i < p.notes.length; i++) {
+      var n = p.notes[i];
+      if (n.t < from - 1e-6 || n.t >= to - 1e-6) continue;
+      if (hands === 'R' && n.h !== 0) continue;
+      if (hands === 'L' && n.h !== 1) continue;
+      if (!cur || n.t - cur.t > eps) { cur = { t: n.t, notes: [], midis: [] }; out.push(cur); }
+      cur.notes.push(n);
+      if (cur.midis.indexOf(n.m) < 0) cur.midis.push(n.m);
+    }
+    return out;
+  }
+
+  // ------------------------------------------------------------ darabok ----
+  var G_ALAP = 'Alapok', G_DAL = 'Első dalok', G_KLASSZ = 'Klasszikusok', G_CHOPIN = 'Chopin', G_DEBUSSY = 'Debussy';
+
+  var RAW = [
+    {
+      id: 'ot-ujj', group: G_ALAP, title: 'Öt ujj, öt hang', composer: 'Ujjgyakorlat', level: 1, bpm: 72, ts: [4, 4], unit: 16, sec: 4,
+      info: 'Mindkét kéz egy helyben marad: a hüvelykujj a C-n. A számok az ujjakat jelölik (1 = hüvelykujj, 5 = kisujj).',
+      R: 'C4~1:4 D4~2:4 E4~3:4 F4~4:4 | G4~5:4 F4~4:4 E4~3:4 D4~2:4 | C4~1:4 E4~3:4 G4~5:4 E4~3:4 | C4~1:16 |',
+      L: 'C3~5:4 D3~4:4 E3~3:4 F3~2:4 | G3~1:4 F3~2:4 E3~3:4 D3~4:4 | C3~5:4 E3~3:4 G3~1:4 E3~3:4 | C3~5:16 |'
+    },
+    {
+      id: 'c-dur-skala', group: G_ALAP, title: 'C-dúr skála', composer: 'Skála', level: 1, bpm: 72, ts: [4, 4], unit: 16, sec: 4,
+      info: 'Egy oktáv fel és le. A jobb kézben a 3. ujj után a hüvelykujj alábújik (E → F), a bal kézben a hüvelykujj után a 3. ujj átlép.',
+      R: 'C4~1:4 D4~2:4 E4~3:4 F4~1:4 | G4~2:4 A4~3:4 B4~4:4 C5~5:4 | B4~4:4 A4~3:4 G4~2:4 F4~1:4 | E4~3:4 D4~2:4 C4~1:8 |',
+      L: 'C3~5:4 D3~4:4 E3~3:4 F3~2:4 | G3~1:4 A3~3:4 B3~2:4 C4~1:4 | B3~2:4 A3~3:4 G3~1:4 F3~2:4 | E3~3:4 D3~4:4 C3~5:8 |'
+    },
+    {
+      id: 'boci', group: G_DAL, title: 'Boci, boci tarka', composer: 'Magyar gyermekdal', level: 1, bpm: 80, ts: [2, 4], unit: 16, sec: 4,
+      info: 'A dallam a jobb kézben, a bal kéz kéthangos kísérettel segít.',
+      R: 'C4~1:2 E4~3:2 C4~1:2 E4~3:2 | G4~5:4 G4~5:4 | C4~1:2 E4~3:2 C4~1:2 E4~3:2 | G4~5:4 G4~5:4 | ' +
+         'C5~5:2 B4~4:2 A4~3:2 G4~2:2 | F4~1:4 A4~3:4 | G4~5:2 F4~4:2 E4~3:2 D4~2:2 | C4~1:4 C4~1:4 |',
+      L: '[C3~5 G3~1]:8 | [C3~5 G3~1]:8 | [C3~5 G3~1]:8 | [C3~5 G3~1]:8 | [C3~5 G3~1]:8 | [C3~5 F3~2]:8 | [D3~4 G3~1]:8 | [C3~5 G3~1]:8 |'
+    },
+    {
+      id: 'oromoda', group: G_DAL, title: 'Örömóda', composer: 'Ludwig van Beethoven', years: '1770–1827', level: 1, bpm: 96, ts: [4, 4], unit: 16, sec: 4,
+      info: 'A IX. szimfónia témája C-dúrban, könnyített bal kézzel (C-dúr és G7 akkord).',
+      R: 'E4~3:4 E4~3:4 F4~4:4 G4~5:4 | G4~5:4 F4~4:4 E4~3:4 D4~2:4 | C4~1:4 C4~1:4 D4~2:4 E4~3:4 | E4~3:6 D4~2:2 D4~2:8 | ' +
+         'E4~3:4 E4~3:4 F4~4:4 G4~5:4 | G4~5:4 F4~4:4 E4~3:4 D4~2:4 | C4~1:4 C4~1:4 D4~2:4 E4~3:4 | D4~2:6 C4~1:2 C4~1:8 | ' +
+         'D4~2:4 D4~2:4 E4~3:4 C4~1:4 | D4~2:4 E4~3:2 F4~4:2 E4~3:4 C4~1:4 | D4~2:4 E4~3:2 F4~4:2 E4~3:4 D4~2:4 | C4~1:4 D4~2:4 G3:8 | ' +
+         'E4~3:4 E4~3:4 F4~4:4 G4~5:4 | G4~5:4 F4~4:4 E4~3:4 D4~2:4 | C4~1:4 C4~1:4 D4~2:4 E4~3:4 | D4~2:6 C4~1:2 C4~1:8 |',
+      L: '[C3 E3 G3]:16 | [B2 F3 G3]:16 | [C3 E3 G3]:16 | [C3 E3 G3]:8 [B2 F3 G3]:8 | ' +
+         '[C3 E3 G3]:16 | [B2 F3 G3]:16 | [C3 E3 G3]:16 | [B2 F3 G3]:8 [C3 E3 G3]:8 | ' +
+         '[B2 F3 G3]:8 [C3 E3 G3]:8 | [B2 F3 G3]:8 [C3 E3 G3]:8 | [B2 F3 G3]:16 | [C3 E3 G3]:8 [B2 F3]:8 | ' +
+         '[C3 E3 G3]:16 | [B2 F3 G3]:16 | [C3 E3 G3]:16 | [B2 F3 G3]:8 [C3 E3 G3]:8 |'
+    },
+    {
+      id: 'fur-elise', group: G_KLASSZ, title: 'Für Elise', composer: 'Ludwig van Beethoven', years: '1770–1827', level: 2, bpm: 56, ts: [3, 8], unit: 16, pickup: 2, sec: 4,
+      info: 'A híres nyitórész (felütés + 8 ütem), eredeti hangokkal.',
+      R: 'E5~5 D#5~4 | E5~5 D#5~4 E5~5 B4~2 D5~4 C5~3 | A4~1:2 r C4~1 E4~2 A4~4 | B4~5:2 r E4~1 G#4~2 B4~4 | C5~5:2 r E4~1 E5~5 D#5~4 | ' +
+         'E5~5 D#5~4 E5~5 B4~2 D5~4 C5~3 | A4~1:2 r C4~1 E4~2 A4~4 | B4~5:2 r E4~1 C5~3 B4~2 | A4~1:4 r:2 |',
+      L: 'r:2 | r:6 | A2~5 E3~2 A3~1 r:3 | E2~5 E3~2 G#3~1 r:3 | A2~5 E3~2 A3~1 r:3 | r:6 | A2~5 E3~2 A3~1 r:3 | E2~5 E3~2 G#3~1 r:3 | A2~5 E3~2 A3~1 r:3 |'
+    },
+    {
+      id: 'menuett-g', group: G_KLASSZ, title: 'G-dúr menüett', composer: 'Christian Petzold', years: '1677–1733', level: 2, bpm: 104, ts: [3, 4], unit: 16, sec: 4,
+      info: 'Anna Magdalena Bach kottásfüzetéből (BWV Anh. 114) – az első 16 ütem.',
+      R: 'D5:4 G4:2 A4:2 B4:2 C5:2 | D5:4 G4:4 G4:4 | E5:4 C5:2 D5:2 E5:2 F#5:2 | G5:4 G4:4 G4:4 | C5:4 D5:2 C5:2 B4:2 A4:2 | B4:4 C5:2 B4:2 A4:2 G4:2 | F#4:4 G4:2 A4:2 B4:2 G4:2 | B4:4 A4:8 | ' +
+         'D5:4 G4:2 A4:2 B4:2 C5:2 | D5:4 G4:4 G4:4 | E5:4 C5:2 D5:2 E5:2 F#5:2 | G5:4 G4:4 G4:4 | C5:4 D5:2 C5:2 B4:2 A4:2 | B4:4 C5:2 B4:2 A4:2 G4:2 | A4:4 B4:2 A4:2 G4:2 F#4:2 | G4:12 |',
+      L: '[G3 B3 D4]:8 A3:4 | B3:12 | C4:12 | B3:12 | A3:12 | G3:12 | D4:4 B3:4 G3:4 | D4:4 D3:2 C4:2 B3:2 A3:2 | ' +
+         'B3:8 A3:4 | G3:4 B3:4 G3:4 | C4:12 | B3:4 C4:2 B3:2 A3:2 G3:2 | A3:8 F#3:4 | G3:8 B3:4 | C4:4 D4:4 D3:4 | G3:8 G2:4 |'
+    },
+    {
+      id: 'gymnopedie-1', group: G_KLASSZ, title: 'Gymnopédie No. 1', composer: 'Erik Satie', years: '1866–1925', level: 2, bpm: 72, ts: [3, 4], unit: 16, sec: 4,
+      info: 'Az első 16 ütem. A bal kéz végig két akkordot váltogat: mély hang az ütem elején, akkord a második negyedre.',
+      R: 'r:12 | r:12 | r:12 | r:12 | r:4 F#5:4 A5:4 | G5:4 F#5:4 C#5:4 | B4:4 C#5:4 D5:4 | A4:12 | F#4:12 | _:12 | _:12 | _:12 | r:4 F#5:4 A5:4 | G5:4 F#5:4 C#5:4 | B4:4 C#5:4 D5:4 | A4:12 |',
+      L: ['G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 | G2:12 | D2:12 |',
+          'r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | ' +
+          'r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 | r:4 [B3 D4 F#4]:8 | r:4 [A3 C#4 F#4]:8 |']
+    },
+    {
+      id: 'chopin-nokturn', group: G_CHOPIN, title: 'Esz-dúr noktürn, Op. 9 No. 2', composer: 'Frédéric Chopin', years: '1810–1849', level: 3, bpm: 66, ts: [12, 8], unit: 8, pickup: 1, sec: 2,
+      info: 'A főtéma (1–4. ütem). A dallam az eredeti; a bal kéz könnyített átirat (basszus + kéthangos akkord), nem Chopin eredeti kísérete.',
+      R: 'Bb4 | G5:6 F5 G5 F5 Eb5:2 Bb4 | G5:2 C5 C6:2 G5 Bb5:3 Ab5:2 G5 | F5:3 G5:2 D5 Eb5:3 C5:3 | Bb4 D6 C6 Bb5:.5 Ab5:.5 G5:.5 Ab5:.5 C5:.5 D5:.5 Eb5:6 |',
+      L: 'r | Eb3 [G3 Bb3]:2 Eb3 [G3 Bb3]:2 D3 [Ab3 Bb3]:2 Eb3 [G3 Bb3]:2 | C3 [E3 Bb3]:2 C3 [E3 Bb3]:2 F3 [Ab3 C4]:2 F3 [Ab3 C4]:2 | ' +
+         'Bb2 [Ab3 D4]:2 Bb2 [Ab3 D4]:2 Eb3 [G3 Bb3]:2 C3 [Eb3 G3]:2 | Bb2 [Ab3 D4]:2 Bb2 [Ab3 D4]:2 Eb3 [G3 Bb3]:2 [Eb3 G3 Bb3]:3 |'
+    },
+    {
+      id: 'chopin-prelud-e', group: G_CHOPIN, title: 'e-moll prelűd, Op. 28 No. 4', composer: 'Frédéric Chopin', years: '1810–1849', level: 3, bpm: 58, ts: [2, 2], unit: 8, pickup: 2, sec: 3,
+      info: 'A darab első fele (1–12. ütem), a 13. ütem nyitóhangzatával zárva. A jobb kéz alig mozdul; a bal kéz nyolcadonként ismétli az akkordot, és mindig csak egy hang lép lejjebb. Először érdemes kezenként gyakorolni.',
+      credit: 'A hangok ellenőrzéséhez használt forrás: Mutopia Project (közkincs), Peters-kiadás alapján.',
+      R: 'B3:1.5 B4:.5 | B4:6 C5:2 | B4:6 C5:2 | B4:6 C5:2 | B4:6 Bb4:2 | A4:6 B4:2 | A4:6 B4:2 | A4:6 B4:1.5 A4:.5 | A4:6 G#4:2 | ' +
+         '_:2 A4 B4 D5 C5 E4 A4 | F#4:6 A4:2 | F#4:6 A4:2 | G4 F#4 C4 B3 D#4 F#4 D5:2/3 C5:2/3 B4:2/3 | B4:8 |',
+      L: 'r:2 | [G3 B3 E4]*8 | [F#3 A3 E4]*4 [F#3 A3 D#4]*4 | [F3 A3 D#4]*4 [F3 A3 D4]*2 [F3 G#3 D4]*2 | [E3 G#3 D4]*4 [E3 G3 D4]*2 [E3 G3 C#4]*2 | ' +
+         '[E3 G3 C4]*4 [E3 F#3 C4]*4 | [E3 F#3 C4]*4 [D#3 F#3 C4]*4 | [D3 F#3 C4]*8 | [D3 F3 C4]*4 [D3 F3 B3]*4 | ' +
+         '[C3 E3 B3]*2 [C3 E3 A3]*6 | [B2 E3 A3]*2 [B2 D#3 A3]*2 [C3 E3 A3]*4 | [B2 D#3 A3]*4 [C3 E3 A3]*4 | [B2 D#3 A3]:2 r:6 | [G3 B3 E4]:8 |'
+    },
+    {
+      id: 'debussy-clair', group: G_DEBUSSY, title: 'Clair de lune', composer: 'Claude Debussy', years: '1862–1918', level: 4, bpm: 60, ts: [9, 8], unit: 8, sec: 2,
+      info: 'A Suite bergamasque harmadik tétele: a nyitó nyolc ütem, eredeti hangokkal. Öt bé az előjegyzés, a 2. ütem bal kezében pedig egy kettős bé is van (bebé – ugyanaz a billentyű, mint az A). Nagyon lassan, kezenként érdemes kezdeni.',
+      credit: 'Forrás: Mutopia Project (közkincs) – Keith O’Hara szedése az 1905-ös Fromont-kiadás alapján.',
+      R: ['r:2 [F5 Ab5]:4 [Db5 F5]:3 | _:1 [C5 Eb5] [Db5 F5] [C5 Eb5]:6 | _:1 [Bb4 Db5] [C5 Eb5] Db5:1.5 F5:3 Db5:1.5 | _:1 [Ab4 C5] [Bb4 Db5] [Ab4 C5]:6 | ' +
+          '_:1 Bb4 C5 Bb4 Eb5 Bb4 Ab4 Bb4 Ab4 | _:1 Gb4 Ab4 Gb4:3 F4:3 | _:1 F4 Gb4 F4 Bb4 F4 Eb4 F4 Eb4 | _:1 Db4 Eb4 Db4:3 C4:3 |',
+          'r:9 | r:9 | r:3 Bb4:6 | _:1 r:8 | Gb4:6 Gb4:3 | Eb4:6 Eb4:3 | Db4:9 | Bb3:6 Ab3:3 |'],
+      L: ['r [F4 Ab4]:8 | [Gb4 Bbb4]:9 | [F4 Ab4]:9 | [Eb4 Gb4]:9 | Eb4:6 Eb4:3 | Db4:6 C4:3 | Bb3:9 | Ab3:6 Gb3:3 |',
+          'r:9 | r:9 | r:9 | r:9 | Db4:6 C4:3 | Bb3:6 A3:3 | Ab3:6 Gb3:3 | F3:6 Eb3:1.5 Ab2:1.5 |']
+    }
+  ];
+
+  // ------------------------------------------------------ MIDI-beolvasó ----
+  // Szabványos MIDI-fájl (0-s vagy 1-es formátum) -> darab. A kezeket sáv (vagy csatorna) szerint,
+  // egysávos fájlnál hangmagasság szerint osztja szét.
+  function parseMidi(buf, name) {
+    var d = new DataView(buf), pos = 0;
+    function str(n) { var s = ''; for (var i = 0; i < n; i++) s += String.fromCharCode(d.getUint8(pos++)); return s; }
+    function u32() { var v = d.getUint32(pos); pos += 4; return v; }
+    function u16() { var v = d.getUint16(pos); pos += 2; return v; }
+    function vlq() { var v = 0, b; do { b = d.getUint8(pos++); v = (v << 7) | (b & 127); } while (b & 128); return v; }
+    if (str(4) !== 'MThd') throw new Error('Ez nem MIDI-fájl.');
+    var hl = u32(), fmt = u16(), ntr = u16(), div = u16();
+    pos = 8 + hl;
+    if (div & 0x8000) throw new Error('Az SMPTE-időzítésű MIDI-fájlt nem ismerem.');
+    var notes = [], tempo = 500000, ts = [4, 4], gotTempo = false, title = '';
+    for (var tr = 0; tr < ntr && pos < d.byteLength - 8; tr++) {
+      var id = str(4), len = u32(), end = pos + len;
+      if (id !== 'MTrk') { pos = end; continue; }
+      var tick = 0, run = 0, on = {};
+      while (pos < end) {
+        tick += vlq();
+        var st = d.getUint8(pos);
+        if (st & 0x80) { pos++; if (st < 0xF0) run = st; } else st = run;
+        var type = st & 0xF0, ch = st & 15;
+        if (st === 0xFF) {
+          var mt = d.getUint8(pos++), ml = vlq();
+          if (mt === 0x51 && !gotTempo) { tempo = (d.getUint8(pos) << 16) | (d.getUint8(pos + 1) << 8) | d.getUint8(pos + 2); gotTempo = true; }
+          else if (mt === 0x58 && tick === 0) ts = [d.getUint8(pos), 1 << d.getUint8(pos + 1)];
+          else if (mt === 0x03 && !title) { var s = ''; for (var q = 0; q < ml; q++) s += String.fromCharCode(d.getUint8(pos + q)); title = s; }
+          pos += ml;
+        } else if (st === 0xF0 || st === 0xF7) { pos += vlq(); }
+        else if (type === 0x90 || type === 0x80) {
+          var key = d.getUint8(pos++), vel = d.getUint8(pos++), k = ch * 128 + key;
+          if (type === 0x90 && vel > 0) {
+            if (ch !== 9) { if (on[k]) on[k].d = (tick - on[k]._tk) / div; on[k] = { t: tick / div, d: 0.25, m: key, h: 0, tr: tr, ch: ch, _tk: tick }; notes.push(on[k]); }
+          } else if (on[k]) { on[k].d = Math.max(0.05, (tick - on[k]._tk) / div); on[k] = null; }
+        } else if (type === 0xC0 || type === 0xD0) pos += 1;
+        else pos += 2;
+      }
+      pos = end;
+    }
+    if (!notes.length) throw new Error('Nem találtam hangokat a fájlban.');
+    // kezek: a hangot tartalmazó sávok (vagy csatornák) közül a magasabb átlagú a jobb kéz
+    var groups = {}, key2 = function (n) { return fmt === 0 ? 'c' + n.ch : 't' + n.tr; };
+    notes.forEach(function (n) { var g = groups[key2(n)] || (groups[key2(n)] = { sum: 0, cnt: 0 }); g.sum += n.m; g.cnt++; });
+    var ids = Object.keys(groups);
+    if (ids.length >= 2) {
+      ids.sort(function (a, b) { return groups[b].sum / groups[b].cnt - groups[a].sum / groups[a].cnt; });
+      var half = Math.ceil(ids.length / 2);
+      notes.forEach(function (n) { n.h = ids.indexOf(key2(n)) < half ? 0 : 1; });
+    } else notes.forEach(function (n) { n.h = n.m >= 60 ? 0 : 1; });
+    // a kezdő csend levágása ütemhatárra
+    var first = notes.reduce(function (a, n) { return Math.min(a, n.t); }, 1e9), barB = ts[0] * 4 / ts[1];
+    var shift = Math.floor(first / barB + 1e-6) * barB;
+    notes.forEach(function (n) { n.t -= shift; delete n._tk; delete n.tr; delete n.ch; });
+    return finish({
+      id: 'midi-' + Date.now().toString(36), title: (name || title || 'Importált darab').replace(/\.midi?$/i, ''), composer: 'Saját darab', years: '', group: 'Saját darabok',
+      level: 0, bpm: Math.max(30, Math.min(200, Math.round(60000000 / tempo))), ts: ts, info: 'MIDI-fájlból beolvasva.', credit: '',
+      pickupBeats: 0, secBars: 4, notes: notes, errors: [], builtin: false
+    }, 0);
+  }
+
+  // tömör tárolás (saját darabok mentéséhez)
+  function pack(p) {
+    return { id: p.id, title: p.title, bpm: p.bpm, ts: p.ts, n: p.notes.map(function (n) { return [Math.round(n.t * 960), Math.round(n.d * 960), n.m, n.h]; }) };
+  }
+  function unpack(o) {
+    return finish({
+      id: o.id, title: o.title, composer: 'Saját darab', years: '', group: 'Saját darabok', level: 0, bpm: o.bpm, ts: o.ts, info: 'MIDI-fájlból beolvasva.', credit: '',
+      pickupBeats: 0, secBars: 4, errors: [], builtin: false,
+      notes: o.n.map(function (a) { return { t: a[0] / 960, d: a[1] / 960, m: a[2], h: a[3] }; })
+    }, 0);
+  }
+
+  var Songs = {
+    groups: [G_ALAP, G_DAL, G_KLASSZ, G_CHOPIN, G_DEBUSSY],
+    list: RAW.map(build),
+    sections: sections, steps: steps, barStart: barStart, parseMidi: parseMidi, pack: pack, unpack: unpack
+  };
+  root.Songs = Songs;
+  if (typeof module !== 'undefined' && module.exports) module.exports = Songs;
+})(typeof self !== 'undefined' ? self : this);
+
+</script>
+<script>
+/* ============================================================================
+   Zongoratanár – felület: darabtár, hulló hangjegyek, billentyűzet, tanuló mód,
+   meghallgatás, szabad játék, beállítások. A hangfelismerést az engine.js,
+   a darabokat a songs.js adja.
+   ========================================================================== */
+(function () {
+  'use strict';
+
+  var $ = function (s) { return document.querySelector(s); };
+  var MIN = 21, MAX = 108;
+  var COL = { ink: '#14111a', stage: '#1b1723', panel: '#241f2e', line: '#3d354b', ivory: '#f5efe3', muted: '#a9a1b6', dim: '#7a7289',
+              R: '#f3b544', L: '#53c7ba', ok: '#8bdc8f', bad: '#ff7366', felt: '#a8283d' };
+  var FONT = '"Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif';
+  var SERIF = '"Didot", "Bodoni 72", "Iowan Old Style", Palatino, Georgia, serif';
+  var PREVIEW = !!window.ZT_PREVIEW;      // beágyazott előnézet: nincs mikrofon, nincs telepítés
+  var elHome = $('#home'), elPlayer = $('#player');
+
+  // ------------------------------------------------------------- tárolás ----
+  var store = {
+    get: function (k, d) { try { var v = localStorage.getItem('zt.' + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+    set: function (k, v) { try { localStorage.setItem('zt.' + k, JSON.stringify(v)); return true; } catch (e) { return false; } }
+  };
+  var S = { names: 'hu', labels: true, fingers: true, sens: 0, octave: true, refA: 440, vol: 70 };
+  (function () { var o = store.get('settings', {}); for (var k in o) if (k in S && typeof o[k] === typeof S[k]) S[k] = o[k]; })();
+  var progress = store.get('progress', {});
+  if (!progress || typeof progress !== 'object') progress = {};
+  var custom = [];
+  (store.get('custom', []) || []).forEach(function (o) { try { custom.push(Songs.unpack(o)); } catch (e) { /* sérült mentés: kihagyjuk */ } });
+  var inFrame = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+  function wall() { return performance.now() / 1000; }
+
+  // ----------------------------------------------------------- hangnevek ----
+  var HU = { C: 'C', D: 'D', E: 'E', F: 'F', G: 'G', A: 'A', B: 'H' };
+  var HU_FLAT = { C: 'Cesz', D: 'Desz', E: 'Esz', F: 'Fesz', G: 'Gesz', A: 'Asz', B: 'B' };
+  var HU_FLAT2 = { C: 'Ceszesz', D: 'Deszesz', E: 'Eszesz', F: 'Feszesz', G: 'Geszesz', A: 'Aszasz', B: 'Bebé' };
+  var PC_HU = ['C', 'Cisz', 'D', 'Esz', 'E', 'F', 'Fisz', 'G', 'Gisz', 'A', 'B', 'H'];
+  var PC_INT = ['C', 'C♯', 'D', 'E♭', 'E', 'F', 'F♯', 'G', 'A♭', 'A', 'B♭', 'B'];
+  function nm(m, sp) {
+    if (!sp) return (S.names === 'hu' ? PC_HU : PC_INT)[((m % 12) + 12) % 12];
+    var l = sp.charAt(0), a = sp.slice(1);
+    if (S.names === 'hu') return a === '' ? HU[l] : a === '#' ? HU[l] + 'isz' : a === 'b' ? HU_FLAT[l] : a === 'bb' ? HU_FLAT2[l] : HU[l] + 'iszisz';
+    return l + (a === '#' ? '♯' : a === 'b' ? '♭' : a === 'bb' ? '♭♭' : a === '##' ? '♯♯' : '');
+  }
+  function isBlack(m) { var p = ((m % 12) + 12) % 12; return p === 1 || p === 3 || p === 6 || p === 8 || p === 10; }
+  function esc(s) { return String(s).replace(/[&<>"]/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]; }); }
+
+  // ------------------------------------------------------------------ hang ----
+  var AC = window.AudioContext || window.webkitAudioContext;
+  var au = { ctx: null, master: null, wave: null, mic: PREVIEW ? 'none' : 'off', stream: null, src: null, analyser: null, proc: null, starting: null,
+             big: null, ring: null, ringPos: 0, count: 0, pos: 0, sr: 48000, hop: 800, cost: 0, lastGot: 0, stalled: false };
+  var eng = null, ver = null;
+
+  function makeEngine(sr) {
+    eng = new PitchEngine(sr, { refA: S.refA, sens: S.sens });
+    ver = new StepVerifier(eng);
+    ver.strictOctave = !!S.octave;
+  }
+  makeEngine(48000);
+
+  function ensureCtx() {
+    if (!AC) return null;
+    if (au.ctx && au.ctx.state === 'closed') au.ctx = null;
+    if (!au.ctx) {
+      try { au.ctx = new AC({ latencyHint: 'interactive' }); } catch (e) { try { au.ctx = new AC(); } catch (e2) { return null; } }
+      try {
+        var comp = au.ctx.createDynamicsCompressor();
+        au.master = au.ctx.createGain(); au.master.gain.value = S.vol / 100 * 0.9;
+        au.master.connect(comp); comp.connect(au.ctx.destination);
+        var n = 12, re = new Float32Array(n + 1), im = new Float32Array(n + 1);
+        for (var h = 1; h <= n; h++) im[h] = Math.pow(h, -1.35) * (h % 7 === 0 ? 0.3 : 1);
+        au.wave = au.ctx.createPeriodicWave(re, im);
+      } catch (e3) { au.wave = null; }
+    }
+    // iOS-en a hangkörnyezet "suspended" vagy "interrupted" állapotba kerülhet: koppintásra újraindul
+    if (au.ctx.state !== 'running') { try { var p = au.ctx.resume(); if (p && p.catch) p.catch(function () {}); } catch (e4) { /* nincs teendő */ } }
+    return au.ctx;
+  }
+
+  // egyszerű, zongoraszerű hang (két, enyhén elhangolt oszcillátor, lecsengő burkoló)
+  function voice(m, when, dur, vel) {
+    var c = ensureCtx(); if (!c || !au.master) return null;
+    try {
+      var f = S.refA * Math.pow(2, (m - 69) / 12), t = Math.max(when || 0, c.currentTime + 0.005);
+      var o1 = c.createOscillator(), o2 = c.createOscillator(), g = c.createGain(), lp = c.createBiquadFilter();
+      if (au.wave) { o1.setPeriodicWave(au.wave); o2.setPeriodicWave(au.wave); } else { o1.type = 'triangle'; o2.type = 'triangle'; }
+      o1.frequency.value = f; o2.frequency.value = f * 1.0016;
+      lp.type = 'lowpass'; lp.frequency.value = Math.min(9000, 1000 + f * 5); lp.Q.value = 0.3;
+      var peak = 0.2 * (vel || 0.8) * Math.pow(2, (60 - m) / 70), tau = 1.3 * Math.pow(2, (60 - m) / 24);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(peak, t + 0.008);
+      g.gain.setTargetAtTime(peak * 0.45, t + 0.008, 0.1);
+      g.gain.setTargetAtTime(0.0001, t + 0.3, tau);
+      o1.connect(lp); o2.connect(lp); lp.connect(g); g.connect(au.master);
+      o1.start(t); o2.start(t);
+      var v = { off: function (at) {
+        var e = Math.max(at || 0, c.currentTime);
+        try { if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(e); else g.gain.cancelScheduledValues(e); g.gain.setTargetAtTime(0, e, 0.07); o1.stop(e + 0.6); o2.stop(e + 0.6); } catch (x) { /* már leállt */ }
+      } };
+      if (dur != null) v.off(t + Math.max(0.08, dur));
+      return v;
+    } catch (e) { return null; }
+  }
+
+  function stopMic() {
+    if (au.stream) { try { au.stream.getTracks().forEach(function (t) { t.onended = null; t.stop(); }); } catch (e) { /* nincs teendő */ } }
+    [au.src, au.analyser, au.proc].forEach(function (n) { if (n) { try { n.disconnect(); } catch (e) { /* nincs teendő */ } } });
+    if (au.proc) au.proc.onaudioprocess = null;
+    au.stream = null; au.src = null; au.analyser = null; au.proc = null; au.ring = null; au.stalled = false;
+    if (au.mic === 'on') au.mic = 'off';
+  }
+
+  // Mikrofon indítása; az ígéret a végállapottal teljesül: 'on' | 'denied' | 'none'.
+  // Nyers hangot kérünk: a telefonáláshoz való zajszűrés és visszhangelnyomás eltorzítja a zongorahangot.
+  function startMic() {
+    if (au.mic === 'on') return Promise.resolve('on');
+    var md = navigator.mediaDevices;
+    if (PREVIEW || !md || !md.getUserMedia || !AC) { au.mic = 'none'; return Promise.resolve('none'); }
+    if (au.starting) return au.starting;
+    var raw = { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 1 };
+    au.starting = md.getUserMedia({ audio: raw, video: false })
+      .catch(function (e) {
+        if (e && (e.name === 'OverconstrainedError' || e.name === 'ConstraintNotSatisfiedError' || e.name === 'TypeError')) return md.getUserMedia({ audio: true });
+        throw e;
+      })
+      .then(function (stream) {
+        // A mikrofon megnyitása (főleg iOS-en) átállíthatja a hangrendszert. Ha a már futó hangkörnyezet
+        // más mintavételi frekvencián jár, mint a mikrofon, újat nyitunk, hogy a hangmagasság biztosan stimmeljen.
+        var tr = stream.getAudioTracks()[0], set = {};
+        try { set = (tr && tr.getSettings && tr.getSettings()) || {}; } catch (e) { /* nem támogatott */ }
+        if (au.ctx && set.sampleRate && Math.abs(set.sampleRate - au.ctx.sampleRate) > 1) { try { au.ctx.close(); } catch (e2) { /* nincs teendő */ } au.ctx = null; }
+        var c = ensureCtx();
+        if (!c) { stream.getTracks().forEach(function (t) { t.stop(); }); au.mic = 'none'; return 'none'; }
+        au.stream = stream; au.sr = c.sampleRate;
+        makeEngine(au.sr);
+        au.hop = Math.round(au.sr / 60); au.cost = 0;
+        var N = eng.N, src = c.createMediaStreamSource(stream), zero = c.createGain(), an = null;
+        zero.gain.value = 0; zero.connect(c.destination);            // a gráfot "húzni" kell, különben nem dolgozza fel a böngésző
+        au.src = src;
+        // 1. út: AnalyserNode kétszeres ablakkal – ebből a hangóra szerint, rögzített lépésközzel elemzünk,
+        //    így a felismerés nem függ a képfrissítés ütemétől (30/60/120 kép/mp, akadozás)
+        if (N <= 32768) {
+          try {
+            an = c.createAnalyser();
+            if (!an.getFloatTimeDomainData) an = null;
+            else { try { an.fftSize = Math.min(32768, 2 * N); } catch (e3) { an.fftSize = N; } an.smoothingTimeConstant = 0; }
+          } catch (e4) { an = null; }
+        }
+        if (an && an.fftSize >= N) {
+          src.connect(an); an.connect(zero); au.analyser = an;
+          au.big = new Float32Array(an.fftSize);
+          au.pos = Math.round(c.currentTime * au.sr);
+        } else {
+          // 2. út (régebbi böngésző): saját körkörös puffer
+          var L = 2 * N, p = c.createScriptProcessor(1024, 1, 1);
+          au.ring = new Float32Array(L); au.big = new Float32Array(L); au.ringPos = 0; au.count = 0; au.pos = 0;
+          p.onaudioprocess = function (ev) {
+            var x = ev.inputBuffer.getChannelData(0), r = au.ring; if (!r) return;
+            var n = r.length, pos = au.ringPos;
+            for (var i = 0; i < x.length; i++) { r[pos] = x[i]; pos++; if (pos === n) pos = 0; }
+            au.ringPos = pos; au.count += x.length;
+          };
+          src.connect(p); p.connect(zero); au.proc = p;
+        }
+        if (tr) tr.onended = function () { if (au.stream === stream) { stopMic(); micChanged(); } };
+        au.mic = 'on'; au.lastGot = wall(); au.stalled = false;
+        return 'on';
+      })
+      .catch(function (e) {
+        au.mic = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError' || e.name === 'PermissionDeniedError') ? 'denied' : 'none';
+        return au.mic;
+      })
+      .then(function (st) { au.starting = null; return st; });
+    return au.starting;
+  }
+
+  // A motor órája: ha szól a mikrofon, a hangminták számolt ideje; egyébként a falióra.
+  function clock() { return au.mic === 'on' ? au.pos / au.sr : wall(); }
+
+  // A mikrofon legfrissebb hangjának feldolgozása rögzített lépésközzel. Minden elemzett képkocka után
+  // meghívja az `each(idő)` függvényt; a visszatérési érték az elemzett képkockák száma.
+  function pump(each) {
+    var c = au.ctx;
+    if (au.mic !== 'on' || !c || !au.big) return 0;
+    var sr = au.sr, N = eng.N, big = au.big, L = big.length, total, n = 0, off;
+    if (au.analyser) {
+      var t1 = c.currentTime; au.analyser.getFloatTimeDomainData(big);
+      var t2 = c.currentTime; if (t2 !== t1) { au.analyser.getFloatTimeDomainData(big); t2 = c.currentTime; }
+      total = Math.round(t2 * sr);
+    } else if (au.ring) {
+      var r = au.ring, p = au.ringPos; big.set(r.subarray(p), 0); big.set(r.subarray(0, p), L - p); total = au.count;
+    } else return 0;
+    var hop = au.hop, slack = L - N;
+    if (total - au.pos < hop) return 0;
+    if (slack < hop) { au.pos = total; eng.process(big.subarray(L - N), total / sr); each(total / sr); return 1; }   // nincs tartalék: csak a legfrissebb ablak
+    if (total - au.pos > Math.min(slack, sr * 0.3)) {
+      // kimaradás (háttérből visszatérés, hosszú szünet): tiszta lappal indulunk, és a pufferben lévő
+      // utolsó harmad másodperccel "bemelegítünk", hogy a már szóló hang ne tűnjön friss leütésnek
+      makeEngine(sr);
+      au.pos = total - Math.min(Math.floor(slack / hop), 18) * hop;
+      while (au.pos + 2 * hop <= total) { au.pos += hop; off = total - au.pos; eng.process(big.subarray(L - off - N, L - off), au.pos / sr); }
+      rearm();
+    }
+    var t0 = performance.now();
+    while (au.pos + hop <= total && n < 10) {
+      au.pos += hop; off = total - au.pos;
+      eng.process(big.subarray(L - off - N, L - off), au.pos / sr);
+      each(au.pos / sr); n++;
+    }
+    // lassú készüléken ritkábban elemzünk (másodpercenként 30-szor is biztosan követi a játékot)
+    au.cost += ((performance.now() - t0) / n - au.cost) * 0.05;
+    if (au.cost > 9 && au.hop < sr / 40) au.hop = Math.round(sr / 30);
+    return n;
+  }
+
+  // ------------------------------------------------------- MIDI-billentyűzet ----
+  // Számítógépen (Chrome, Edge, Firefox) az USB-n csatlakoztatott szintetizátor leütései közvetlenül megérkeznek:
+  // ilyenkor nincs szükség hangfelismerésre, a program pontosan tudja, melyik billentyűt ütötted le.
+  var midi = { ok: !PREVIEW && !!navigator.requestMIDIAccess, access: null, names: [], lastNote: -1e9, held: {} };
+  function midiScan() {
+    midi.names = [];
+    if (midi.access) midi.access.inputs.forEach(function (inp) {
+      if (inp.state === 'disconnected') return;
+      midi.names.push(inp.name || 'MIDI-eszköz'); inp.onmidimessage = onMidi;
+    });
+    refreshMicUI();
+    if (P && !P.started) askStart();
+  }
+  function connectMidi() {
+    if (!midi.ok) return Promise.resolve('none');
+    if (midi.access) { midiScan(); return Promise.resolve(midi.names.length ? 'on' : 'empty'); }
+    try {
+      return navigator.requestMIDIAccess().then(function (acc) {
+        midi.access = acc; acc.onstatechange = midiScan; midiScan();
+        return midi.names.length ? 'on' : 'empty';
+      }, function () { return 'denied'; });
+    } catch (e) { return Promise.resolve('none'); }
+  }
+  function onMidi(ev) {
+    var d = ev.data; if (!d || d.length < 3) return;
+    var st = d[0] & 0xF0;
+    if (st === 0x90 && d[2] > 0) midiNote(d[1]);
+    else if (st === 0x80 || st === 0x90) midiOff(d[1]);
+  }
+  function midiNote(m) {
+    midi.lastNote = wall(); midi.held[m] = 1;
+    if (!P || !P.started) return;
+    if (P.free) { P.roll.push({ m: m, t0: wall(), t1: null, touch: true, midi: m }); flash(m, 'ok'); return; }
+    if (P.mode !== 'learn' || P.done || !P.steps.length) return;
+    ver.manualOnly = true;                 // amíg MIDI-n jönnek a hangok, a mikrofon nem dönt (különben kétszer számolná)
+    var t = clock();
+    if (ver.manualHit(m, t)) { ver.path[m] = 'M'; flash(m, 'ok'); learnTick(t); }
+    else if (!ver.isExp[m]) wrongNote(m);
+  }
+  function midiOff(m) {
+    delete midi.held[m];
+    if (P && P.free) for (var i = P.roll.length - 1; i >= 0; i--) if (P.roll[i].midi === m && P.roll[i].t1 == null) { P.roll[i].t1 = wall(); break; }
+  }
+
+  // ------------------------------------------------------------- darabtár ----
+  function allPieces() { return Songs.list.concat(custom); }
+
+  // egy darab leckéi: szakaszonként jobb kéz, bal kéz, együtt; a végén az egész darab
+  function tasksFor(p) {
+    if (p._tasks) return p._tasks;
+    var secs = Songs.sections(p), out = [];
+    function has(h, s) { return Songs.steps(p, h, s.from, s.to).length > 0; }
+    secs.forEach(function (s, i) {
+      var r = has('R', s), l = has('L', s), lab = s.b0 === s.b1 ? s.b0 + '. ütem' : s.b0 + '–' + s.b1 + '. ütem';
+      if (r && l) { out.push({ sec: i, hands: 'R', label: lab }); out.push({ sec: i, hands: 'L', label: lab }); out.push({ sec: i, hands: 'both', label: lab }); }
+      else if (r || l) out.push({ sec: i, hands: r ? 'R' : 'L', label: lab });
+    });
+    if (secs.length > 1 || !out.length) out.push({ sec: -1, hands: p.hasR && p.hasL ? 'both' : p.hasR ? 'R' : 'L', label: 'Az egész darab' });
+    out.forEach(function (t) { t.key = t.sec + ':' + t.hands; });
+    p._tasks = out; p._secs = secs;
+    return out;
+  }
+  function handWord(h) { return h === 'R' ? 'jobb kéz' : h === 'L' ? 'bal kéz' : 'két kézzel'; }
+  function starsOf(p, key) { return (progress[p.id] && progress[p.id][key]) || 0; }
+  function starHtml(n) { var s = ''; for (var i = 1; i <= 3; i++) s += '<span class="' + (i <= n ? '' : 'off') + '">★</span>'; return s; }
+  function firstOpen(p) { var ts = tasksFor(p); for (var i = 0; i < ts.length; i++) if (!starsOf(p, ts[i].key)) return ts[i]; return null; }
+
+  function renderLibrary() {
+    var groups = Songs.groups.slice(), html = '';
+    if (custom.length) groups.push('Saját darabok');
+    groups.forEach(function (g) {
+      var list = allPieces().filter(function (p) { return p.group === g; });
+      if (!list.length) return;
+      html += '<section class="group"><h2><span>' + esc(g) + '</span><span>' + list.length + ' darab</span></h2>';
+      list.forEach(function (p) {
+        var ts = tasksFor(p), done = ts.filter(function (t) { return starsOf(p, t.key) > 0; }).length, dots = '';
+        for (var i = 1; i <= 4; i++) dots += '<i class="' + (i <= p.level ? 'on' : '') + '"></i>';
+        html += '<div class="piece-row"><button class="piece" type="button" data-id="' + esc(p.id) + '">' +
+          '<span class="t">' + esc(p.title) + '</span>' +
+          '<span class="by">' + esc(p.composer) + (p.years ? ' · ' + esc(p.years) : '') + '</span>' +
+          '<span class="meta">' + (p.level ? '<span class="dots" role="img" aria-label="Nehézség: ' + p.level + ' a 4-ből">' + dots + '</span>' : '') +
+          '<span>' + (done ? done + ' / ' + ts.length + ' lecke kész' : p.bars + ' ütem') + '</span></span></button>' +
+          (p.builtin ? '' : '<button class="del" type="button" data-del="' + esc(p.id) + '" aria-label="' + esc(p.title) + ' törlése">Törlés</button>') + '</div>';
+      });
+      html += '</section>';
+    });
+    $('#library').innerHTML = html;
+    // "Folytatom": egy koppintással oda, ahol legutóbb abbahagytad (ha az a lecke azóta kész, a darab következő leckéjére)
+    var last = store.get('last', null), lp = last && allPieces().filter(function (q) { return q.id === last.id; })[0], cb = $('#btn-continue');
+    cb.hidden = !lp;
+    if (lp) {
+      var lt = tasksFor(lp).filter(function (t) { return t.key === last.key; })[0];
+      if (!lt || starsOf(lp, lt.key)) lt = firstOpen(lp) || lt || tasksFor(lp)[0];
+      cb.textContent = 'Folytatom: ' + lp.title + ' · ' + lt.label + ' · ' + handWord(lt.hands);
+      cb.onclick = function () { openPiece(lp, lt); };
+    }
+    $('#btn-midi').hidden = !midi.ok;
+    var cr = Songs.list.filter(function (p) { return p.credit; }).map(function (p) { return p.title + ' – ' + p.credit; });
+    $('#credits').textContent = 'A beépített darabok közkincsek. ' + cr.join(' ');
+  }
+
+  function notice(html) { var n = $('#home-notice'); if (!html) { n.hidden = true; return; } n.innerHTML = html; n.hidden = false; }
+  var PREVIEW_NOTE = '<b>Ez egy előnézet.</b> Itt a mikrofon és a net nélküli telepítés nem működik – ahhoz a letölthető csomag kell. A darabokat a képernyő billentyűin érintéssel és a Meghallgatás módban tudod kipróbálni.';
+
+  function saveCustom() {
+    if (!store.set('custom', custom.map(Songs.pack))) notice('<b>Nem sikerült elmenteni a darabot</b> – a böngésző tárolója megtelt vagy le van tiltva. Most még használható, de bezárás után elveszik.');
+  }
+
+  $('#library').addEventListener('click', function (ev) {
+    var del = ev.target.closest('[data-del]');
+    if (del) {
+      var id = del.getAttribute('data-del');
+      if (del.getAttribute('data-sure') !== '1') { del.setAttribute('data-sure', '1'); del.textContent = 'Biztosan törlöd?'; return; }
+      custom = custom.filter(function (p) { return p.id !== id; });
+      delete progress[id]; store.set('progress', progress); saveCustom(); renderLibrary();
+      return;
+    }
+    var b = ev.target.closest('.piece');
+    if (!b) return;
+    var p = allPieces().filter(function (q) { return q.id === b.getAttribute('data-id'); })[0];
+    if (p) openPiece(p);
+  });
+
+  $('#btn-import').addEventListener('click', function () { $('#file-midi').click(); });
+  $('#file-midi').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    this.value = '';
+    if (!f) return;
+    var rd = new FileReader();
+    rd.onload = function () {
+      try {
+        var p = Songs.parseMidi(rd.result, f.name);
+        custom.push(p); notice(PREVIEW ? PREVIEW_NOTE : ''); saveCustom(); renderLibrary();
+        openPiece(p);
+      } catch (e) { notice('<b>Ezt a fájlt nem tudtam beolvasni.</b> ' + esc(e instanceof RangeError ? 'A fájl sérültnek tűnik.' : (e.message || '')) + ' Szabványos MIDI-fájlt (.mid) válassz.'); }
+    };
+    rd.onerror = function () { notice('<b>Nem sikerült megnyitni a fájlt.</b> Próbáld újra, vagy válassz másik .mid fájlt.'); };
+    rd.readAsArrayBuffer(f);
+  });
+
+  // ------------------------------------------------------------- gyakorló ----
+  var canvas = $('#stage'), g2 = canvas.getContext('2d');
+  var P = null;              // az aktuális gyakorlás állapota
+  var G = { W: 0, H: 0, KH: 0, hitY: 0, lo: 48, hi: 72, ww: 20, bw: 12, kx: new Float32Array(128), dpr: 1, ppb: 60, dirty: true };
+  var hintDirty = false;
+
+  function show(id) {
+    elHome.hidden = id !== 'home'; elPlayer.hidden = id !== 'player';
+    if (id === 'player') { G.dirty = true; au.lastGot = wall(); keepAwake(); }
+    else if (wake) { try { wake.release(); } catch (e) { /* nincs teendő */ } wake = null; }
+  }
+
+  function openPiece(piece, task) {
+    var first = task || firstOpen(piece) || tasksFor(piece)[0];
+    P = { free: false, piece: piece, mode: 'learn', hands: 'both', sec: -1, steps: [], idx: 0, viewT: 0, from: 0, to: 1e9,
+          playing: false, tempo: $('#tempo').value / 100, li: 0, done: false, wrong: 0, skipped: 0, t0: 0, started: false,
+          fx: {}, touch: {}, hintWrong: null, hintUntil: 0, sounding: [], req: null, taskKey: '', next: null };
+    $('#p-title').textContent = piece.title;
+    $('#p-by').textContent = piece.composer;
+    var sel = $('#sel-sec'), html = '<option value="-1">Az egész darab</option>';
+    piece._secs.forEach(function (s, k) { html += '<option value="' + k + '">' + (s.b0 === s.b1 ? s.b0 : s.b0 + '–' + s.b1) + '. ütem</option>'; });
+    sel.innerHTML = html; sel.hidden = piece._secs.length < 2;
+    $('#seg-hands').hidden = !(piece.hasR && piece.hasL);
+    $('#seg-mode').hidden = false; $('#btn-plan').hidden = false;
+    show('player');
+    setTask(first.sec, first.hands, 'learn');
+    askStart();
+  }
+
+  function openFree() {
+    P = { free: true, piece: null, mode: 'free', fx: {}, touch: {}, roll: [], prevHeard: new Uint8Array(128), started: false, sounding: [] };
+    $('#p-title').textContent = 'Szabad játék';
+    $('#p-by').textContent = 'Mit hall a program?';
+    $('#sel-sec').hidden = true; $('#seg-hands').hidden = true; $('#seg-mode').hidden = true; $('#btn-plan').hidden = true;
+    ['#btn-play', '#tempo-box', '#btn-skip', '#btn-prev', '#btn-restart'].forEach(function (s) { $(s).hidden = true; });
+    $('#prog').parentNode.hidden = true; $('#count').textContent = '';
+    $('#ov-done').hidden = true;
+    show('player'); G.dirty = true;
+    askStart();
+  }
+
+  // Bemutatkozó lap minden megnyitáskor: mi ez a darab, mi az első feladat, és kell-e a mikrofon.
+  function askStart() {
+    $('#ov-done').hidden = true;
+    var p = P.piece, go = $('#st-go'), touch = $('#st-touch'), note = '';
+    $('#st-title').textContent = P.free ? 'Szabad játék' : p.title;
+    $('#st-by').textContent = P.free ? '' : p.composer + (p.years ? ' · ' + p.years : '');
+    $('#st-by').hidden = P.free;
+    $('#st-info').textContent = P.free ? 'Játssz bármit: megmutatom, melyik billentyűket hallom. Jó próba arra is, hogy a mikrofon jól hallja-e a zongorádat.' : (p.info || '');
+    $('#st-info').hidden = !$('#st-info').textContent;
+    var t = P.free ? null : tasksFor(p).filter(function (x) { return x.key === P.taskKey; })[0];
+    $('#st-task').textContent = t ? (firstOpen(p) === t && tasksFor(p).some(function (x) { return starsOf(p, x.key); }) ? 'Itt tartasz: ' : 'Feladat: ') + t.label + ' · ' + handWord(t.hands) + '.' : '';
+    $('#st-task').hidden = !t;
+    if (au.mic === 'on') { go.textContent = 'Kezdjük'; go.setAttribute('data-act', 'go'); touch.hidden = true; }
+    else if (midi.names.length) { note = 'MIDI-billentyűzet csatlakoztatva (' + midi.names[0] + '): a leütéseidet közvetlenül látom, mikrofon nem kell.'; go.textContent = 'Kezdjük'; go.setAttribute('data-act', 'go'); touch.hidden = true; }
+    else if (PREVIEW) { note = 'Előnézet: itt nincs mikrofon. A billentyűket a képernyőn üsd le.'; go.textContent = 'Kipróbálom érintéssel'; go.setAttribute('data-act', 'go'); touch.hidden = true; }
+    else if (au.mic === 'none') { note = 'Ezen a készüléken most nem érhető el mikrofon. A képernyő billentyűin érintéssel is leütheted a hangokat.'; go.textContent = 'Kezdjük érintéssel'; go.setAttribute('data-act', 'go'); touch.hidden = true; }
+    else {
+      note = au.mic === 'denied' ? (inFrame ? 'Ebben a beágyazott nézetben a mikrofon nem érhető el. Nyisd meg az oldalt közvetlenül Safariban, vagy próbáld ki érintéssel.'
+        : 'A böngésző nem engedte a mikrofont. Engedélyezd, amikor rákérdez – ha korábban letiltottad, az iPad Beállításaiban a Safari mikrofon-engedélyénél tudod visszaadni.')
+        : 'A mikrofonon át figyelem, mit játszol a zongorán. A hang nem hagyja el a készüléket.';
+      go.textContent = au.mic === 'denied' ? 'Újrapróbálom a mikrofont' : 'Mikrofon bekapcsolása'; go.setAttribute('data-act', 'mic'); touch.hidden = false;
+    }
+    if (window.innerWidth < 560 && window.innerHeight > window.innerWidth) note += (note ? ' ' : '') + 'Kis képernyőn fektetve kényelmesebb.';
+    $('#st-note').textContent = note; $('#st-note').hidden = !note;
+    $('#ov-start').hidden = false;
+    refreshMicUI();
+  }
+  $('#st-go').addEventListener('click', function () {
+    ensureCtx();
+    if (this.getAttribute('data-act') !== 'mic') { begin(); return; }
+    this.disabled = true; var btn = this;
+    startMic().then(function (st) { btn.disabled = false; refreshMicUI(); if (!P) return; if (st === 'on') begin(); else askStart(); });
+  });
+  $('#st-touch').addEventListener('click', function () { ensureCtx(); begin(); });
+
+  function begin() {
+    if (!P) return;
+    $('#ov-start').hidden = true; P.started = true; P.t0 = wall();
+    if (!P.free) { rearm(); remember(); }
+    setHint();
+  }
+  function remember() { if (P && !P.free && P.started) store.set('last', { id: P.piece.id, key: P.taskKey }); }
+
+  // feladat beállítása: szakasz + kéz + mód
+  function setTask(sec, hands, mode) {
+    var p = P.piece;
+    if (!(p.hasR && p.hasL)) hands = p.hasR ? 'R' : 'L';
+    P.sec = sec; P.hands = hands; if (mode) P.mode = mode;
+    var s = sec >= 0 ? p._secs[sec] : null;
+    P.from = s ? s.from : 0; P.to = s ? s.to : p.len + 1;
+    P.steps = Songs.steps(p, hands, P.from, P.to);
+    P.req = new Set(); P.steps.forEach(function (st) { st.notes.forEach(function (n) { P.req.add(n); }); });
+    P.taskKey = sec + ':' + hands;
+    // a hulló hangok sűrűsége: a legrövidebb gyakori hangon is elférjen a hangnév és az ujjrend
+    var ds = p.notes.map(function (n) { return n.d; }).sort(function (a, b) { return a - b; });
+    var dmin = ds.length ? ds[Math.floor(ds.length * 0.1)] : 1;
+    G.ppb = Math.max(46, Math.min(190, 32 / Math.max(0.08, dmin)));
+    $('#sel-sec').value = String(sec);
+    press('#seg-hands', hands); press('#seg-mode', P.mode);
+    restart(); remember();
+    G.dirty = true;
+  }
+
+  function press(sel, v) { Array.prototype.forEach.call(document.querySelectorAll(sel + ' button'), function (b) { b.setAttribute('aria-pressed', b.getAttribute('data-v') === v ? 'true' : 'false'); }); }
+
+  function restart() {
+    if (!P || P.free) return;
+    stopListen();
+    P.idx = 0; P.done = false; P.wrong = 0; P.skipped = 0; P.li = 0; P.fx = {}; P.hintWrong = null; P.next = null;
+    P.viewT = P.steps.length ? P.steps[0].t : P.from;
+    P.t0 = wall();
+    $('#ov-done').hidden = true;
+    var learn = P.mode === 'learn';
+    $('#btn-play').hidden = learn; $('#tempo-box').hidden = learn;
+    $('#btn-skip').hidden = !learn; $('#btn-prev').hidden = !learn; $('#btn-restart').hidden = false;
+    $('#prog').parentNode.hidden = false;
+    ver.clear();
+    rearm();
+    setHint(); setCount();
+  }
+
+  // az aktuális lépés (újra)élesítése tiszta lappal: a korábban elhangzott leütések nem számítanak
+  function rearm() {
+    if (!P || P.free || P.mode !== 'learn' || !P.started || P.done || !P.steps.length) return;
+    var t = clock();
+    ver.reset(); ver.flush(t); arm(t);
+  }
+  function arm(t) { if (P.idx < P.steps.length) ver.setStep(P.steps[P.idx].midis, t); }
+
+  function setCount() {
+    if (!P || P.free) return;
+    var n = P.steps.length;
+    if (P.mode === 'learn') { $('#count').textContent = n ? Math.min(P.idx + (P.done ? 0 : 1), n) + ' / ' + n : ''; $('#prog').style.width = (n ? 100 * P.idx / n : 0) + '%'; }
+    else $('#count').textContent = '';
+  }
+
+  function setHint() {
+    hintDirty = false;
+    var h = $('#hint');
+    if (!P) return;
+    if (au.mic === 'on' && au.stalled) { h.innerHTML = '<span class="x">A mikrofon megállt.</span> Koppints a képernyőre, hogy újrainduljon.'; return; }
+    if (P.free) { h.textContent = au.mic === 'on' ? 'Játssz valamit – a felismert hangok megjelennek a billentyűkön.' : midi.names.length ? 'Játssz a MIDI-billentyűzeten – a leütött hangok megjelennek.' : 'Mikrofon nélkül: koppints a billentyűkre.'; return; }
+    if (P.mode === 'listen') { h.textContent = P.playing ? 'Figyeld, melyik billentyűk szólalnak meg.' : 'Hallgasd meg, hogyan szól, aztán próbáld ki Tanulás módban.'; return; }
+    if (P.done) { h.textContent = ''; return; }
+    if (!P.steps.length) { h.textContent = 'Ebben a szakaszban ennek a kéznek nincs hangja.'; return; }
+    var st = P.steps[P.idx], parts = st.notes.slice().sort(function (a, b) { return a.m - b.m; }).map(function (n) {
+      return '<b class="' + (n.h ? 'l' : 'r') + '">' + esc(nm(n.m, n.sp)) + '</b>';
+    });
+    var s = 'Üsd le: ' + parts.join(' + ');
+    if (P.hintWrong != null && wall() < P.hintUntil) s += ' &nbsp;·&nbsp; <span class="x">ezt hallottam: ' + esc(nm(P.hintWrong)) + '</span>';
+    h.innerHTML = s;
+  }
+
+  function flash(m, kind) { P.fx[m] = { t: wall(), k: kind }; }
+  function wrongNote(m) { P.wrong++; flash(m, 'bad'); P.hintWrong = m; P.hintUntil = wall() + 2.5; hintDirty = true; }
+
+  // egy elemzett képkocka (vagy érintés) után: mit mond az ellenőrző?
+  function learnTick(t) {
+    if (!P || P.free || P.mode !== 'learn' || !P.started || P.done || !P.steps.length) return;
+    ver.update(t);
+    var i;
+    for (i = 0; i < ver.justHit.length; i++) flash(ver.justHit[i], 'ok');
+    for (i = 0; i < ver.newWrong.length; i++) wrongNote(ver.newWrong[i]);
+    if (ver.done) nextStep(t, false);
+    else if (ver.justHit.length) hintDirty = true;
+  }
+
+  function nextStep(t, skipped) {
+    P.idx++;
+    if (skipped) { P.skipped++; ver.flush(t); }
+    P.hintWrong = null;
+    if (P.idx >= P.steps.length) { finish(); return; }
+    arm(t); hintDirty = true; setCount();
+  }
+
+  function finish() {
+    P.done = true; ver.clear(); setCount(); setHint();
+    $('#prog').style.width = '100%';
+    var n = P.steps.length, bad = P.wrong + P.skipped * 2;
+    var stars = P.skipped > n * 0.25 ? 0 : bad === 0 ? 3 : bad <= Math.max(2, Math.round(n * 0.1)) ? 2 : 1;
+    var p = P.piece, key = P.taskKey, ts = tasksFor(p), known = ts.filter(function (t) { return t.key === key; })[0];
+    if (stars && known) {
+      if (!progress[p.id]) progress[p.id] = {};
+      if (stars > (progress[p.id][key] || 0)) { progress[p.id][key] = stars; store.set('progress', progress); }
+    }
+    var sec = Math.max(0, Math.round(wall() - P.t0));
+    $('#dn-title').textContent = stars === 3 ? 'Hibátlan!' : stars === 2 ? 'Szép munka!' : stars === 1 ? 'Megvan!' : 'A végére értél';
+    $('#dn-stars').innerHTML = starHtml(stars);
+    $('#dn-time').textContent = Math.floor(sec / 60) + ':' + ('0' + sec % 60).slice(-2);
+    $('#dn-wrong').textContent = P.wrong; $('#dn-skip').textContent = P.skipped;
+    // következő feladat: az első, még csillag nélküli lecke a mostani után (vagy az elejétől)
+    var i0 = known ? ts.indexOf(known) : -1, nx = null, i;
+    for (i = i0 + 1; i < ts.length && !nx; i++) if (!starsOf(p, ts[i].key)) nx = ts[i];
+    for (i = 0; i < i0 && !nx; i++) if (!starsOf(p, ts[i].key)) nx = ts[i];
+    if (!stars) nx = null;
+    P.next = nx;
+    $('#dn-next').textContent = stars === 0 ? 'Sok lépést kihagytál, ezért ez most nem számít teljesítettnek. Próbáld újra, nyugodtan lassabban.' :
+      nx ? 'Következő feladat: ' + nx.label + ' · ' + handWord(nx.hands) + '.' : 'Ennek a darabnak minden leckéje megvan. Játszd el újra, vagy válassz másikat.';
+    $('#dn-go').hidden = !nx;
+    $('#dn-again').className = nx ? 'btn' : 'btn primary';
+    $('#ov-done').hidden = false;
+  }
+  $('#dn-go').addEventListener('click', function () { if (P && P.next) setTask(P.next.sec, P.next.hands, 'learn'); });
+  $('#dn-again').addEventListener('click', function () { restart(); });
+  $('#dn-home').addEventListener('click', goHome);
+
+  function goHome() { stopListen(); if (ver) ver.clear(); P = null; renderLibrary(); show('home'); }
+  $('#btn-back').addEventListener('click', goHome);
+  $('#btn-free').addEventListener('click', openFree);
+  $('#btn-restart').addEventListener('click', restart);
+  $('#btn-skip').addEventListener('click', function () { if (P && !P.free && P.mode === 'learn' && P.started && !P.done && P.steps.length) nextStep(clock(), true); });
+  $('#btn-prev').addEventListener('click', function () {
+    if (!P || P.free || P.mode !== 'learn' || !P.started || !P.steps.length) return;
+    P.done = false; $('#ov-done').hidden = true;
+    P.idx = Math.max(0, P.idx - 1); P.hintWrong = null;
+    rearm(); setHint(); setCount();
+  });
+  $('#seg-mode').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b && P && !P.free) { ensureCtx(); P.mode = b.getAttribute('data-v'); press('#seg-mode', P.mode); restart(); } });
+  $('#seg-hands').addEventListener('click', function (ev) { var b = ev.target.closest('button'); if (b && P && !P.free) setTask(P.sec, b.getAttribute('data-v')); });
+  $('#sel-sec').addEventListener('change', function () { if (P && !P.free) setTask(parseInt(this.value, 10), P.hands); });
+
+  // --- meghallgatás
+  function stopListen() {
+    if (!P || P.free) return;
+    P.playing = false;
+    for (var k = 0; k < P.sounding.length; k++) P.sounding[k].off(0);
+    P.sounding = [];
+    $('#btn-play').textContent = '▶ Lejátszás';
+  }
+  $('#btn-play').addEventListener('click', function () {
+    if (!P || P.free || P.mode !== 'listen') return;
+    ensureCtx();
+    if (P.playing) { stopListen(); setHint(); return; }
+    var endT = Math.min(P.to, P.piece.len);
+    if (P.viewT >= endT - 0.01) P.viewT = P.steps.length ? P.steps[0].t : P.from;
+    P.li = 0; while (P.li < P.piece.notes.length && P.piece.notes[P.li].t < P.viewT - 1e-6) P.li++;
+    P.playing = true; this.textContent = '❚❚ Szünet'; setHint();
+  });
+  $('#tempo').addEventListener('input', function () { if (P) P.tempo = this.value / 100; $('#tempo-out').textContent = this.value + '%'; });
+
+  // --- tanterv
+  $('#btn-plan').addEventListener('click', function () {
+    if (!P || P.free) return;
+    var p = P.piece, ts = tasksFor(p), html = '';
+    ts.forEach(function (t, i) {
+      html += '<li><button type="button" data-i="' + i + '"><span class="n">' + (i + 1) + '.</span><span class="' + (t.key === P.taskKey ? 'cur' : '') + '"><i class="hand ' + t.hands + '"></i>' +
+        esc(t.label) + ' · ' + handWord(t.hands) + '</span><span class="s" role="img" aria-label="' + starsOf(p, t.key) + ' csillag">' + starHtml(starsOf(p, t.key)) + '</span></button></li>';
+    });
+    $('#plan-info').textContent = p.info || ''; $('#plan-info').hidden = !p.info;
+    $('#plan-list').innerHTML = html;
+    $('#sh-plan').hidden = false;
+  });
+  $('#plan-list').addEventListener('click', function (ev) {
+    var b = ev.target.closest('button'); if (!b || !P) return;
+    var t = tasksFor(P.piece)[parseInt(b.getAttribute('data-i'), 10)];
+    $('#sh-plan').hidden = true;
+    if (t) { ensureCtx(); setTask(t.sec, t.hands, 'learn'); if (!P.started) askStart(); }
+  });
+  $('#plan-close').addEventListener('click', function () { $('#sh-plan').hidden = true; });
+
+  // --- mikrofon gomb
+  function refreshMicUI() {
+    var b = $('#mic'), t = $('#mic-text'), bad = au.mic === 'denied' || au.mic === 'none' || (au.mic === 'on' && au.stalled);
+    var hasMidi = midi.names.length > 0;
+    b.className = 'mic' + ((au.mic === 'on' && !au.stalled) || (hasMidi && au.mic !== 'on') ? ' on' : bad && !PREVIEW ? ' err' : '') + (hasMidi && au.mic !== 'on' ? ' midi' : '');
+    t.textContent = PREVIEW ? 'Mikrofon nélkül' : au.mic === 'on' ? (au.stalled ? 'Koppints ide' : hasMidi ? 'MIDI + mikrofon' : 'Hallgatlak') : hasMidi ? 'MIDI-billentyűzet' : au.mic === 'denied' ? 'Mikrofon tiltva' : au.mic === 'none' ? 'Nincs mikrofon' : 'Mikrofon ki';
+    b.disabled = PREVIEW;
+    if (au.mic !== 'on') { $('#mic-lvl').style.width = '0'; $('#mic-heard').textContent = ''; }
+  }
+  function micChanged() { refreshMicUI(); rearm(); if (P) setHint(); }
+  $('#mic').addEventListener('click', function () {
+    ensureCtx();
+    if (au.mic === 'on' && au.stalled) return;            // a koppintás (lent) már újraindította
+    if (au.mic === 'on') { stopMic(); micChanged(); return; }
+    startMic().then(micChanged);
+  });
+
+  // ------------------------------------------------------------- rajzolás ----
+  function fitKeys(lo, hi, W, maxW, minWhites) {
+    lo = Math.max(MIN, lo); hi = Math.min(MAX, hi);
+    while (isBlack(lo)) lo--; while (isBlack(hi)) hi++;
+    function whites(a, b) { var c = 0; for (var m = a; m <= b; m++) if (!isBlack(m)) c++; return c; }
+    var side = 0, guard = 0;
+    while ((W / whites(lo, hi) > maxW || whites(lo, hi) < minWhites) && (lo > MIN || hi < MAX) && guard++ < 120) {
+      if ((side++ % 2 === 0 && lo > MIN) || hi >= MAX) { lo--; while (isBlack(lo)) lo--; }
+      else { hi++; while (isBlack(hi)) hi++; }
+    }
+    return [lo, hi, whites(lo, hi)];
+  }
+
+  function layout() {
+    var r = canvas.getBoundingClientRect();
+    if (r.width < 10 || r.height < 10) return false;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2.5);
+    G.W = r.width; G.H = r.height; G.dpr = dpr;
+    canvas.width = Math.round(r.width * dpr); canvas.height = Math.round(r.height * dpr);
+    G.KH = Math.max(Math.min(92, G.H * 0.45), Math.min(200, G.H * 0.3));
+    G.hitY = G.H - G.KH;
+    var k;
+    if (P && P.free) {
+      var want = Math.max(15, Math.min(52, Math.floor(G.W / 24)));
+      k = fitKeys(55, 65, G.W, G.W / want, want);
+    } else if (P) k = fitKeys(P.piece.lo - 1, P.piece.hi + 1, G.W, 60, 15);
+    else k = fitKeys(48, 72, G.W, 60, 15);
+    G.lo = k[0]; G.hi = k[1]; G.ww = G.W / k[2]; G.bw = Math.max(7, G.ww * 0.62);
+    var wi = 0;
+    for (var m = G.lo; m <= G.hi; m++) {
+      if (isBlack(m)) G.kx[m] = wi * G.ww - G.bw / 2;
+      else { G.kx[m] = wi * G.ww; wi++; }
+    }
+    G.dirty = false;
+    return true;
+  }
+  window.addEventListener('resize', function () { G.dirty = true; });
+  window.addEventListener('orientationchange', function () { G.dirty = true; });
+
+  function keyAt(x, y) {
+    if (y < G.hitY) return -1;
+    var m, bh = G.KH * 0.62;
+    if (y < G.hitY + bh) for (m = G.lo; m <= G.hi; m++) if (isBlack(m) && x >= G.kx[m] - 2 && x <= G.kx[m] + G.bw + 2) return m;
+    for (m = G.lo; m <= G.hi; m++) if (!isBlack(m) && x >= G.kx[m] && x < G.kx[m] + G.ww) return m;
+    return -1;
+  }
+
+  function rr(x, y, w, h, r) {
+    r = Math.max(0, Math.min(r, w / 2, h / 2));
+    g2.beginPath(); g2.moveTo(x + r, y); g2.lineTo(x + w - r, y); g2.quadraticCurveTo(x + w, y, x + w, y + r);
+    g2.lineTo(x + w, y + h - r); g2.quadraticCurveTo(x + w, y + h, x + w - r, y + h); g2.lineTo(x + r, y + h);
+    g2.quadraticCurveTo(x, y + h, x, y + h - r); g2.lineTo(x, y + r); g2.quadraticCurveTo(x, y, x + r, y); g2.closePath();
+  }
+  function laneX(m) { return isBlack(m) ? G.kx[m] : G.kx[m] + 1.5; }
+  function laneW(m) { return isBlack(m) ? G.bw : G.ww - 3; }
+
+  function drawBackdrop() {
+    g2.fillStyle = COL.stage; g2.fillRect(0, 0, G.W, G.H);
+    // a fekete billentyűk sávja sötétebb, a C-knél halvány vonal: könnyebb tájékozódni
+    for (var m = G.lo; m <= G.hi; m++) {
+      if (isBlack(m)) { g2.fillStyle = 'rgba(0,0,0,0.16)'; g2.fillRect(G.kx[m], 0, G.bw, G.hitY); }
+      else if (m % 12 === 0) { g2.fillStyle = 'rgba(245,239,227,0.10)'; g2.fillRect(G.kx[m] - 0.5, 0, 1, G.hitY); }
+    }
+  }
+
+  function drawNotes() {
+    var p = P.piece, ppb = G.ppb, vt = P.viewT, top = vt + G.hitY / ppb + 0.5, i, n;
+    // ütemvonalak és ütemszámok
+    g2.font = '600 11px ' + FONT; g2.textAlign = 'left'; g2.textBaseline = 'bottom';
+    var b0 = Math.floor((vt - p.pickupBeats) / p.barBeats);
+    for (var b = b0; ; b++) {
+      var bt = p.pickupBeats + b * p.barBeats;
+      if (bt > top) break;
+      if (bt < 0 || bt > p.len + 1e-6) continue;
+      var by = G.hitY - (bt - vt) * ppb;
+      if (by < 0 || by > G.hitY) continue;
+      g2.fillStyle = 'rgba(245,239,227,0.13)'; g2.fillRect(0, by - 0.5, G.W, 1);
+      g2.fillStyle = COL.dim; g2.fillText(String(b + 1), 6, by - 3);
+    }
+    var cur = (P.mode === 'learn' && !P.done && P.steps[P.idx]) ? P.steps[P.idx] : null;
+    g2.textAlign = 'center'; g2.textBaseline = 'middle';
+    for (i = 0; i < p.notes.length; i++) {
+      n = p.notes[i];
+      if (n.t > top) break;
+      if (n.t + n.d < vt - 0.02 || n.m < G.lo || n.m > G.hi) continue;
+      var y1 = G.hitY - (n.t - vt) * ppb, y0 = G.hitY - (n.t + n.d - vt) * ppb;
+      if (y1 > G.hitY) y1 = G.hitY;
+      var h = Math.max(7, y1 - y0 - 2); y0 = y1 - h;
+      var x = laneX(n.m), w = laneW(n.m), req = P.req.has(n), isCur = cur && cur.notes.indexOf(n) >= 0;
+      var past = P.mode === 'learn' ? (req && n.t < (cur ? cur.t : 1e9) - 1e-6) || (!req && n.t < vt - 1e-6) : n.t < vt - 1e-6;
+      var col = n.h ? COL.L : COL.R;
+      g2.globalAlpha = !req ? 0.22 : past ? 0.4 : 1;
+      if (isCur) { g2.shadowColor = col; g2.shadowBlur = 16; }
+      g2.fillStyle = col; rr(x, y0, w, h, 5); g2.fill();
+      g2.shadowBlur = 0;
+      if (isBlack(n.m)) { g2.fillStyle = 'rgba(20,17,26,0.25)'; rr(x, y0, w, h, 5); g2.fill(); }
+      if (isCur) { g2.strokeStyle = COL.ivory; g2.lineWidth = 2; rr(x + 1, y0 + 1, w - 2, h - 2, 4); g2.stroke(); }
+      if (req && !past && w >= 11) {
+        var cx = x + w / 2;
+        if (n.f && S.fingers && h >= 15) { // ujjrend: kis korong a hang alján
+          var r = Math.min(7.5, w / 2 - 1), cy = y1 - r - 2.5;
+          g2.fillStyle = COL.ink; g2.beginPath(); g2.arc(cx, cy, r, 0, 6.2832); g2.fill();
+          g2.fillStyle = col; g2.font = '700 ' + (r >= 7 ? 11 : 9) + 'px ' + FONT; g2.fillText(String(n.f), cx, cy + 0.5);
+        }
+        if (S.labels && w >= 15 && h >= (n.f && S.fingers ? 27 : 14)) {
+          var label = nm(n.m, n.sp);
+          g2.fillStyle = COL.ink; g2.font = '700 ' + (label.length > 2 || w < 24 ? 9.5 : 11) + 'px ' + FONT;
+          if (g2.measureText(label).width <= w - 2) g2.fillText(label, cx, y0 + (n.f && S.fingers ? 7.5 : Math.min(h / 2, 11)));
+        }
+      }
+      g2.globalAlpha = 1;
+    }
+  }
+
+  function keyFx(m, now) {
+    var fx = P.fx[m]; if (!fx) return 0;
+    var a = 1 - (now - fx.t) / (fx.k === 'bad' ? 0.7 : 0.45);
+    if (a <= 0) { delete P.fx[m]; return 0; }
+    g2.fillStyle = fx.k === 'bad' ? COL.bad : COL.ok;
+    return a;
+  }
+
+  function drawKeyboard(now, expected, sounding) {
+    var y = G.hitY, KH = G.KH, bh = KH * 0.62, m, a, x, e;
+    var grad = g2.createLinearGradient(0, y, 0, y + KH);
+    grad.addColorStop(0, '#d8cfbe'); grad.addColorStop(0.12, '#f5efe3'); grad.addColorStop(1, '#fbf7ee');
+    g2.fillStyle = grad; g2.fillRect(0, y, G.W, KH);
+    var heard = (au.mic === 'on') ? eng.heard : null, held = midi.held;
+    // fehér billentyűk
+    for (m = G.lo; m <= G.hi; m++) {
+      if (isBlack(m)) continue;
+      x = G.kx[m]; e = expected[m];
+      if (e) { g2.fillStyle = e === 2 ? COL.L : COL.R; g2.globalAlpha = 0.92; g2.fillRect(x + 1, y + KH * 0.38, G.ww - 2, KH * 0.62); g2.globalAlpha = 1; }
+      if (sounding && sounding[m]) { g2.fillStyle = sounding[m] === 2 ? COL.L : COL.R; g2.globalAlpha = 0.8; g2.fillRect(x + 1, y, G.ww - 2, KH); g2.globalAlpha = 1; }
+      a = keyFx(m, now); if (a) { g2.globalAlpha = a * 0.9; g2.fillRect(x + 1, y, G.ww - 2, KH); g2.globalAlpha = 1; }
+      g2.fillStyle = 'rgba(20,17,26,0.35)'; g2.fillRect(x + G.ww - 1, y, 1, KH);
+      if ((heard && heard[m]) || held[m]) { g2.fillStyle = COL.ink; g2.beginPath(); g2.arc(x + G.ww / 2, y + KH - 30, Math.max(2, Math.min(5, G.ww / 4)), 0, 6.2832); g2.fill(); }
+    }
+    // feliratok a fehér billentyűkön
+    g2.textAlign = 'center'; g2.textBaseline = 'alphabetic';
+    for (m = G.lo; m <= G.hi; m++) {
+      if (isBlack(m)) continue;
+      x = G.kx[m];
+      if (expected[m]) {
+        if (G.ww >= 14) { g2.fillStyle = COL.ink; g2.font = '700 ' + Math.max(10, Math.min(17, G.ww * 0.42)) + 'px ' + FONT; g2.fillText(nm(m, expected.sp[m]), x + G.ww / 2, y + KH - 10); }
+        if (expected.f[m] && S.fingers && G.ww >= 20) { g2.fillStyle = COL.ink; g2.font = '700 12px ' + FONT; g2.fillText(String(expected.f[m]), x + G.ww / 2, y + KH * 0.38 + 16); }
+      } else if (m % 12 === 0 && G.ww >= 15) {
+        g2.fillStyle = m === 60 ? COL.felt : 'rgba(20,17,26,0.45)'; g2.font = (m === 60 ? '700 ' : '500 ') + '10px ' + FONT;
+        g2.fillText('C' + (m / 12 - 1), x + G.ww / 2, y + KH - 9);
+      }
+    }
+    // fekete billentyűk
+    for (m = G.lo; m <= G.hi; m++) {
+      if (!isBlack(m)) continue;
+      x = G.kx[m];
+      g2.fillStyle = '#17131d'; rr(x, y - 1, G.bw, bh + 1, 3); g2.fill();
+      g2.fillStyle = 'rgba(245,239,227,0.10)'; g2.fillRect(x + 2, y + bh - 9, G.bw - 4, 3);
+      e = expected[m];
+      if (e) {
+        g2.fillStyle = e === 2 ? COL.L : COL.R; g2.globalAlpha = 0.95; rr(x + 1.5, y + bh * 0.3, G.bw - 3, bh * 0.7 - 2, 3); g2.fill(); g2.globalAlpha = 1;
+        if (G.bw >= 15) { g2.fillStyle = COL.ink; var lb = nm(m, expected.sp[m]); g2.font = '700 ' + (lb.length > 3 ? 8 : 10) + 'px ' + FONT; if (g2.measureText(lb).width <= G.bw - 2) g2.fillText(lb, x + G.bw / 2, y + bh - 8); }
+      }
+      if (sounding && sounding[m]) { g2.fillStyle = sounding[m] === 2 ? COL.L : COL.R; rr(x + 1, y, G.bw - 2, bh - 1, 3); g2.fill(); }
+      a = keyFx(m, now); if (a) { g2.globalAlpha = a; rr(x + 1, y, G.bw - 2, bh - 1, 3); g2.fill(); g2.globalAlpha = 1; }
+      if ((heard && heard[m]) || held[m]) { g2.fillStyle = COL.ivory; g2.beginPath(); g2.arc(x + G.bw / 2, y + bh * 0.2, Math.max(2, Math.min(4, G.bw / 4)), 0, 6.2832); g2.fill(); }
+    }
+    // ütővonal: piros filccsík a billentyűk fölött
+    g2.fillStyle = COL.felt; g2.fillRect(0, y - 1, G.W, 4);
+  }
+
+  var EXP = (function () { var a = new Uint8Array(128); a.sp = []; a.f = []; return a; })();
+  function expectedKeys() {
+    EXP.fill(0); EXP.sp.length = 0; EXP.f.length = 0;
+    if (P && !P.free && P.mode === 'learn' && !P.done && P.steps[P.idx]) {
+      P.steps[P.idx].notes.forEach(function (n) { if (!P.started || !ver.isExp[n.m] || !ver.hitAt[n.m]) { EXP[n.m] = n.h ? 2 : 1; EXP.sp[n.m] = n.sp; EXP.f[n.m] = n.f; } });
+    }
+    return EXP;
+  }
+
+  function drawFree(now) {
+    drawBackdrop();
+    var pps = 110, i, s;
+    for (i = P.roll.length - 1; i >= 0; i--) {
+      s = P.roll[i];
+      var y1 = G.hitY - (now - s.t0) * pps, y0 = G.hitY - (now - (s.t1 == null ? now : s.t1)) * pps;
+      if (y0 < -20) { P.roll.splice(i, 1); continue; }
+      if (s.m < G.lo || s.m > G.hi) continue;
+      g2.fillStyle = s.touch ? COL.L : COL.R; g2.globalAlpha = s.t1 == null ? 1 : 0.6;
+      rr(laneX(s.m), Math.max(-10, y1), laneW(s.m), Math.max(6, y0 - Math.max(-10, y1)), 5); g2.fill(); g2.globalAlpha = 1;
+    }
+    // a most hallott hangok neve nagy betűkkel
+    var names = [];
+    if (au.mic === 'on') for (var m = MIN; m <= MAX; m++) if (eng.heard[m]) names.push(nm(m) + (Math.floor(m / 12) - 1));
+    g2.textAlign = 'center'; g2.textBaseline = 'top';
+    if (names.length) { g2.fillStyle = COL.ivory; g2.font = '400 ' + Math.min(54, G.W / 12) + 'px ' + SERIF; g2.fillText(names.slice(0, 6).join('  '), G.W / 2, 18); }
+    else if (!P.roll.length && P.started && au.mic === 'on' && !au.stalled) { g2.fillStyle = COL.dim; g2.font = '500 15px ' + FONT; g2.fillText('Üss le egy billentyűt a zongorán…', G.W / 2, 26); }
+    EXP.fill(0);
+    drawKeyboard(now, EXP, null);
+  }
+
+  // -------------------------------------------------------------- főciklus ----
+  var lastT = 0, lvlSm = 0, heardTxt = '', uiTick = 0, measuring = null;
+  function audioTick(t) { if (measuring) measureTick(); else learnTick(t); }
+
+  function frame(ts) {
+    requestAnimationFrame(frame);
+    var now = ts / 1000, dt = Math.min(0.1, Math.max(0.001, now - lastT)); lastT = now;
+    var inPlayer = !!P && !elPlayer.hidden, got = 0, m;
+    if (au.mic === 'on' && (measuring || inPlayer)) {
+      got = pump(audioTick);
+      if (got) { au.lastGot = now; if (au.stalled) { au.stalled = false; refreshMicUI(); hintDirty = true; } }
+      else if (now - au.lastGot > 0.8 && !au.stalled) { au.stalled = true; refreshMicUI(); hintDirty = true; }
+    }
+    if (measuring && now > measuring.until) endMeasure();
+    // pár másodperccel az utolsó MIDI-hang után újra a mikrofon dönthet (pl. ha átülsz a zongorához)
+    if (ver.manualOnly && now - midi.lastNote > 6) { ver.manualOnly = false; rearm(); }
+    if (!inPlayer) return;
+    if (G.dirty && !layout()) return;
+
+    g2.setTransform(G.dpr, 0, 0, G.dpr, 0, 0);
+    if (P.free) {
+      if (got) for (m = MIN; m <= MAX; m++) {
+        var h = eng.heard[m];
+        if (h && !P.prevHeard[m]) P.roll.push({ m: m, t0: now, t1: null });
+        else if (!h && P.prevHeard[m]) for (var q = P.roll.length - 1; q >= 0; q--) if (P.roll[q].m === m && P.roll[q].t1 == null && !P.roll[q].touch) { P.roll[q].t1 = now; break; }
+        P.prevHeard[m] = h;
+      }
+      drawFree(now);
+    } else {
+      var p = P.piece, snd = null;
+      if (P.mode === 'learn') {
+        if (P.hintWrong != null && now > P.hintUntil) { P.hintWrong = null; hintDirty = true; }
+        var target = P.done ? Math.min(P.to, p.len) : (P.steps[P.idx] ? P.steps[P.idx].t : P.viewT);
+        P.viewT += (target - P.viewT) * (1 - Math.exp(-dt / 0.11));
+        if (Math.abs(target - P.viewT) < 0.002) P.viewT = target;
+      } else {
+        snd = {};
+        if (P.playing) {
+          var spb = 60 / (p.bpm * P.tempo), endT = Math.min(P.to, p.len), c = au.ctx;
+          P.viewT += dt / spb;
+          // ütemezés kis előretekintéssel, hogy a hang ne késsen
+          while (P.li < p.notes.length && p.notes[P.li].t <= P.viewT + 0.12 / spb) {
+            var n = p.notes[P.li++];
+            if (n.t < P.from - 1e-6 || n.t >= P.to - 1e-6 || !P.req.has(n)) continue;
+            if (c) { var v = voice(n.m, c.currentTime + Math.max(0, (n.t - P.viewT) * spb), Math.max(0.12, n.d * spb * 0.95), 0.8); if (v) P.sounding.push(v); }
+          }
+          if (P.viewT >= endT + 0.3) { stopListen(); P.viewT = endT; hintDirty = true; }
+          for (var k = 0; k < p.notes.length; k++) {
+            var nn = p.notes[k];
+            if (nn.t > P.viewT) break;
+            if (nn.t + nn.d > P.viewT && P.req.has(nn)) snd[nn.m] = nn.h ? 2 : 1;
+          }
+        }
+        if (uiTick % 6 === 0) $('#prog').style.width = Math.max(0, Math.min(100, 100 * (P.viewT - P.from) / Math.max(0.01, Math.min(P.to, p.len) - P.from))) + '%';
+      }
+      drawBackdrop(); drawNotes(); drawKeyboard(now, expectedKeys(), snd);
+    }
+    if (hintDirty) setHint();
+
+    // mikrofon-kijelző (ritkábban frissítve)
+    if (++uiTick % 4 === 0 && au.mic === 'on') {
+      var lv = got ? Math.max(0, Math.min(1, (eng.rmsDb + 70) / 55)) : lvlSm * 0.8;
+      lvlSm += (lv - lvlSm) * 0.5;
+      $('#mic-lvl').style.width = Math.round(lvlSm * 100) + '%';
+      var hn = eng.heardNotes().slice(0, 3).map(function (x) { return nm(x); }).join(' ');
+      if (hn !== heardTxt) { heardTxt = hn; $('#mic-heard').textContent = hn; }
+    }
+  }
+  requestAnimationFrame(frame);
+
+  // ---------------------------------------------------- érintős billentyűzet ----
+  function pointerDown(ev) {
+    if (!P || !P.started) return;
+    var r = canvas.getBoundingClientRect(), m = keyAt(ev.clientX - r.left, ev.clientY - r.top);
+    if (m < 0) return;
+    ev.preventDefault();
+    try { canvas.setPointerCapture(ev.pointerId); } catch (e) { /* nem baj */ }
+    var learning = !P.free && P.mode === 'learn';
+    // Tanulás közben, ha a mikrofon is figyel, a képernyő billentyűje néma: különben a program a saját hangját hallaná vissza
+    var v = learning && au.mic === 'on' ? null : voice(m, 0, null, 0.85);
+    P.touch[ev.pointerId] = { m: m, v: v };
+    if (P.free) { P.roll.push({ m: m, t0: wall(), t1: null, touch: true, pid: ev.pointerId }); flash(m, 'ok'); return; }
+    if (!learning || P.done || !P.steps.length) return;
+    var t = clock();
+    if (ver.manualHit(m, t)) { ver.path[m] = 'M'; flash(m, 'ok'); learnTick(t); }
+    else if (!ver.isExp[m]) wrongNote(m);
+  }
+  function pointerUp(ev) {
+    if (!P) return;
+    var t = P.touch[ev.pointerId];
+    if (!t) return;
+    if (t.v) t.v.off(0);
+    delete P.touch[ev.pointerId];
+    if (P.free) { for (var i = P.roll.length - 1; i >= 0; i--) if (P.roll[i].pid === ev.pointerId && P.roll[i].t1 == null) { P.roll[i].t1 = wall(); break; } }
+  }
+  canvas.addEventListener('pointerdown', pointerDown);
+  canvas.addEventListener('pointerup', pointerUp);
+  canvas.addEventListener('pointercancel', pointerUp);
+  canvas.addEventListener('contextmenu', function (ev) { ev.preventDefault(); });
+
+  // --------------------------------------------------------- beállítások ----
+  function saveSettings() { store.set('settings', S); }
+  function openSettings() {
+    $('#set-names').value = S.names; $('#set-labels').checked = !!S.labels; $('#set-fingers').checked = !!S.fingers;
+    $('#set-sens').value = S.sens; $('#set-sens-out').textContent = (S.sens > 0 ? '+' : '') + S.sens;
+    $('#set-octave').checked = !!S.octave;
+    $('#set-ref').value = S.refA; $('#set-ref-out').textContent = Math.round(S.refA) + ' Hz';
+    $('#set-vol').value = S.vol; $('#set-vol-out').textContent = S.vol + '%';
+    $('#set-ref-msg').textContent = 'Ha a zongorád mélyebbre vagy magasabbra van hangolva, mérd be.';
+    $('#set-reset').textContent = 'Törlés'; $('#set-reset').removeAttribute('data-sure');
+    $('#set-measure').hidden = PREVIEW;
+    $('#sh-settings').hidden = false;
+  }
+  function closeSettings() { $('#sh-settings').hidden = true; if (measuring) { measuring = null; eng.autoTune = true; } if (P) setHint(); }
+  $('#btn-settings').addEventListener('click', openSettings);
+  $('#set-close').addEventListener('click', closeSettings);
+  $('#set-names').addEventListener('change', function () { S.names = this.value; saveSettings(); });
+  $('#set-labels').addEventListener('change', function () { S.labels = this.checked; saveSettings(); });
+  $('#set-fingers').addEventListener('change', function () { S.fingers = this.checked; saveSettings(); });
+  $('#set-sens').addEventListener('input', function () { S.sens = parseInt(this.value, 10) || 0; eng.sens = S.sens; $('#set-sens-out').textContent = (S.sens > 0 ? '+' : '') + S.sens; saveSettings(); });
+  $('#set-octave').addEventListener('change', function () { S.octave = this.checked; ver.strictOctave = S.octave; saveSettings(); });
+  $('#set-ref').addEventListener('input', function () { setRef(parseInt(this.value, 10) || 440); });
+  $('#set-vol').addEventListener('input', function () { S.vol = parseInt(this.value, 10) || 0; $('#set-vol-out').textContent = S.vol + '%'; if (au.master) au.master.gain.value = S.vol / 100 * 0.9; saveSettings(); });
+  $('#set-reset').addEventListener('click', function () {
+    if (this.getAttribute('data-sure') !== '1') { this.setAttribute('data-sure', '1'); this.textContent = 'Biztosan törlöd?'; return; }
+    progress = {}; store.set('progress', progress); this.removeAttribute('data-sure'); this.textContent = 'Törölve'; renderLibrary();
+  });
+  function setRef(hz) {
+    S.refA = Math.max(415, Math.min(466, hz)); saveSettings();
+    $('#set-ref').value = Math.round(S.refA); $('#set-ref-out').textContent = Math.round(S.refA) + ' Hz';
+    eng.refA = S.refA; eng.tuneCents = 0;
+  }
+  // Hangolás bemérése: a játékos néhányszor leüti az egyvonalas A-t; a 392–494 Hz közötti legerősebb
+  // tiszta csúcs frekvenciájának középértékét vesszük (így a negyedhanggal elhangolt zongora is mérhető).
+  function measureTick() {
+    var q = eng._find(66.6, 71.4);
+    if (q >= 0 && eng.pkSnr[q] >= 22 && eng.pkDb[q] > -78) measuring.f.push(eng.freqOf(eng.pkM[q]));
+  }
+  function endMeasure() {
+    var f = measuring.f.sort(function (a, b) { return a - b; }), msg = $('#set-ref-msg');
+    measuring = null; eng.autoTune = true;
+    if (f.length < 12) { msg.textContent = 'Nem hallottam tisztán az A hangot. Próbáld újra csendben, határozott leütéssel.'; setRef(S.refA); return; }
+    var hz = f[f.length >> 1];
+    setRef(Math.round(hz));
+    msg.textContent = 'Bemértem: A = ' + hz.toFixed(1).replace('.', ',') + ' Hz.' + (hz < 415 || hz > 466 ? ' Ez több mint fél hang eltérés – lehet, hogy nem az A hangot ütötted le.' : Math.abs(hz - 440) > 12 ? ' A zongorád érezhetően el van hangolva; a program mostantól ehhez igazodik.' : '');
+  }
+  $('#set-measure').addEventListener('click', function () {
+    var msg = $('#set-ref-msg');
+    ensureCtx();
+    startMic().then(function (st) {
+      refreshMicUI();
+      if (st !== 'on') { msg.textContent = 'A beméréshez mikrofon kell – itt most nem érhető el.'; return; }
+      eng.refA = 440; eng.tuneCents = 0; eng.autoTune = false;
+      measuring = { until: wall() + 6, f: [] };
+      msg.textContent = 'Üsd le néhányszor a középső C fölötti A hangot… (6 másodperc)';
+    });
+  });
+
+  $('#btn-midi').addEventListener('click', function () {
+    connectMidi().then(function (st) {
+      notice(st === 'on' ? '<b>MIDI-billentyűzet csatlakoztatva:</b> ' + esc(midi.names.join(', ')) + '. Válassz egy darabot – a leütéseidet közvetlenül látom, mikrofon nem kell.' :
+        st === 'denied' ? '<b>A böngésző nem engedte a MIDI-hozzáférést.</b> A címsor melletti lakat ikonnál tudod engedélyezni, utána próbáld újra.' :
+        '<b>Nem találtam MIDI-billentyűzetet.</b> Kösd a szintetizátort USB-kábellel a géphez, kapcsold be, és koppints újra a gombra.');
+    });
+  });
+  // ha a MIDI-hozzáférést korábban már megadtad, magától csatlakozik
+  if (midi.ok && navigator.permissions && navigator.permissions.query) {
+    try { navigator.permissions.query({ name: 'midi' }).then(function (r) { if (r.state === 'granted') connectMidi(); }, function () {}); } catch (e) { /* nem támogatott */ }
+  }
+  // gyorsbillentyűk (számítógépen): → kihagyás, ← vissza, szóköz: lejátszás / szünet
+  document.addEventListener('keydown', function (ev) {
+    if (!P || P.free || elPlayer.hidden || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (/^(INPUT|SELECT|TEXTAREA|BUTTON)$/.test((ev.target && ev.target.tagName) || '')) return;
+    if (!$('#sh-plan').hidden || !$('#ov-start').hidden || !$('#ov-done').hidden) return;
+    if (ev.key === 'ArrowRight') { $('#btn-skip').click(); ev.preventDefault(); }
+    else if (ev.key === 'ArrowLeft') { $('#btn-prev').click(); ev.preventDefault(); }
+    else if (ev.key === ' ' && P.mode === 'listen') { $('#btn-play').click(); ev.preventDefault(); }
+  });
+
+  $('#btn-help').addEventListener('click', function () {
+    var st = $('#help-state');
+    var standalone = (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    st.textContent = PREVIEW ? 'Ez most előnézet: itt a telepítés és a mikrofon nem működik. A letölthető csomagot egy saját webcímre kell feltenni – a lépéseket a csomag OLVASSEL fájljában találod.' :
+      standalone ? 'Most a Főképernyőről futok: internet nélkül is működöm.' :
+      offlineReady ? 'A net nélküli használathoz szükséges fájlok már el vannak mentve ezen a készüléken.' : '';
+    st.hidden = !st.textContent;
+    $('#sh-help').hidden = false;
+  });
+  $('#help-close').addEventListener('click', function () { $('#sh-help').hidden = true; });
+  Array.prototype.forEach.call(document.querySelectorAll('.sheet'), function (sh) {
+    sh.addEventListener('click', function (ev) { if (ev.target !== sh) return; if (sh.id === 'sh-settings') closeSettings(); else sh.hidden = true; });
+  });
+  document.addEventListener('keydown', function (ev) {
+    if (ev.key !== 'Escape') return;
+    if (!$('#sh-settings').hidden) closeSettings();
+    $('#sh-plan').hidden = true; $('#sh-help').hidden = true;
+  });
+
+  // ------------------------------------------------- háttér / előtér, offline ----
+  function micAlive() { try { return !!au.stream && au.stream.getAudioTracks().every(function (t) { return t.readyState === 'live'; }); } catch (e) { return false; } }
+  function reviveAudio() {
+    if (au.ctx && au.ctx.state !== 'running') ensureCtx();
+    if (au.mic === 'on' && !micAlive()) { stopMic(); startMic().then(micChanged); }   // az iOS a háttérben leállíthatja a mikrofont
+  }
+  document.addEventListener('visibilitychange', function () {
+    if (document.hidden) { if (P && !P.free) { stopListen(); hintDirty = true; } return; }
+    reviveAudio(); keepAwake();
+    lastT = wall(); au.lastGot = lastT;
+  });
+  var wake = null;
+  function keepAwake() {
+    try {
+      if (!navigator.wakeLock || document.hidden || elPlayer.hidden || (wake && !wake.released)) return;
+      navigator.wakeLock.request('screen').then(function (w) { wake = w; }).catch(function () {});
+    } catch (e) { /* nem támogatott */ }
+  }
+  document.addEventListener('pointerdown', function () { reviveAudio(); keepAwake(); }, true);
+
+  var offlineReady = false;
+  if (!PREVIEW && !inFrame && 'serviceWorker' in navigator && /^https?:$/.test(location.protocol)) {
+    window.addEventListener('load', function () {
+      try { navigator.serviceWorker.register('sw.js').then(function () { return navigator.serviceWorker.ready; }).then(function () { offlineReady = true; }).catch(function () {}); } catch (e) { /* nem elérhető */ }
+    });
+  }
+
+  // tesztekhez
+  window.ZT = { get P() { return P; }, get eng() { return eng; }, get ver() { return ver; }, get au() { return au; }, G: G, S: S, keyAt: keyAt, clock: clock,
+    open: function (id) { var p = allPieces().filter(function (q) { return q.id === id; })[0]; if (p) openPiece(p); },
+    setTask: function (s, h, m) { setTask(s, h, m); }, midi: midi, midiNote: midiNote, midiOff: midiOff, rearm: function () { rearm(); setCount(); } };
+
+  renderLibrary();
+  if (PREVIEW) notice(PREVIEW_NOTE);
+  var errs = Songs.list.map(function (p) { return p.errors.join('; '); }).filter(Boolean);
+  if (errs.length) notice('<b>Hiba a beépített darabokban:</b> ' + esc(errs.join('; ')));
+})();
+
+</script>
+</body>
+</html>
