@@ -1,5 +1,5 @@
 // Zongorahangoló – net nélküli működés (csak a /hangolo/ mappára)
-const CACHE = 'zongorahangolo-3';
+const CACHE = 'zongorahangolo-4';
 const FILES = ['./', './index.html', './manifest.webmanifest', '../icon-180.png', '../icon-512.png'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));

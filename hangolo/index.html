@@ -69,6 +69,8 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
 .seg { display: inline-flex; background: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 3px; flex-shrink: 0; }
 .seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; color: var(--muted); font-size: 14.5px; white-space: nowrap; }
 .seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--ivory); box-shadow: inset 0 0 0 1px var(--line); }
+.presets { margin-top: 8px; }
+.presets button { padding: 6px 14px; }
 .stepper { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
 .stepper button { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--ink); font-size: 20px; line-height: 1; }
 .stepper output { min-width: 92px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
@@ -228,7 +230,8 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
     <h2>2. Beállítások</h2>
     <div class="rows">
       <div class="row">
-        <div class="lbl"><b>Alaphang (A4)</b><span>Általában 440 Hz. Ha a zongora egésze mélyebben áll, állítsd lejjebb.</span></div>
+        <div class="lbl"><b>Alaphang (A4)</b><span>Általában 440 Hz. Ha a zongora egésze mélyebben áll, állítsd lejjebb.</span>
+          <div class="seg presets" id="a4Seg"><button type="button" data-v="432">432</button><button type="button" data-v="440">440</button><button type="button" data-v="442">442</button></div></div>
         <div class="stepper"><button type="button" data-a4="-1" aria-label="Csökkentés">−</button><output id="a4Out">440 Hz</output><button type="button" data-a4="1" aria-label="Növelés">+</button></div>
       </div>
       <div class="row">
@@ -628,6 +631,7 @@ function renderSetup() {
     L.appendChild(lab);
   }
   $('a4Out').textContent = fmt(S.a4, S.a4 % 1 ? 1 : 0) + ' Hz';
+  for (const b of $('a4Seg').children) b.setAttribute('aria-pressed', +b.dataset.v === S.a4);
   for (const b of $('stretchSeg').children) b.setAttribute('aria-pressed', b.dataset.v === S.stretch);
   for (const b of $('orderSeg').children) b.setAttribute('aria-pressed', b.dataset.v === S.order);
   $('perString').checked = S.perString; $('autoNext').checked = S.auto;
@@ -640,6 +644,7 @@ function renderSetup() {
 document.querySelectorAll('[data-a4]').forEach(b => b.addEventListener('click', () => {
   S.a4 = Math.min(452, Math.max(415, Math.round(S.a4) + +b.dataset.a4)); save(); renderSetup();
 }));
+$('a4Seg').addEventListener('click', e => { const v = e.target.dataset && e.target.dataset.v; if (v) { S.a4 = +v; save(); renderSetup(); } });
 $('stretchSeg').addEventListener('click', e => { const v = e.target.dataset && e.target.dataset.v; if (v) { S.stretch = v; save(); renderSetup(); } });
 $('orderSeg').addEventListener('click', e => { const v = e.target.dataset && e.target.dataset.v; if (v) { S.order = v; prog().idx = 0; save(); renderSetup(); } });
 $('perString').addEventListener('change', e => { const k = steps.length ? cur().k : null; S.perString = e.target.checked; buildSteps(); jumpToKey(k, false); save(); });
