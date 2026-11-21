@@ -67,3 +67,12 @@ AMIT TUDNI ÉRDEMES
   - Oktávval elütött vagy egy akkordból kihagyott hangot néha elfogad.
   - Erős pedálnál előfordulhat téves „melléütés” jelzés.
   - Zajos szobában (beszéd, tévé) ritkán magától is továbbléphet.
+
+
+ZONGORAHANGOLÓ (hangolo/ mappa)
+-------------------------------
+  Külön program ugyanebben a repóban: <a GitHub Pages címed>/hangolo/
+  iPaden Safariban nyisd meg, engedélyezd a mikrofont, majd
+  Megosztás → „Főképernyőhöz adás”, így külön ikonja lesz.
+  Választható: 88 / 85 / 73 billentyűs hangszer, A4 alaphang, nyújtott hangolás,
+  húronkénti léptetés, automatikus továbblépés. A haladást megjegyzi.

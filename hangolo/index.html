@@ -1,0 +1,817 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<title>Zongorahangoló</title>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" content="Zongorahangoló iPadre és telefonra: billentyűről billentyűre végigvezet, megmutatja, merre és mennyit tekerj.">
+<meta name="theme-color" content="#14111a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hangoló">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="../icon-180.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2314111a'/%3E%3Cpath d='M16 6v14' stroke='%23f3b544' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='22' r='4' fill='%23f5efe3'/%3E%3C/svg%3E">
+<style>
+:root {
+  --ink: #14111a;
+  --stage: #1b1723;
+  --panel: #241f2e;
+  --panel-2: #2f2839;
+  --line: #3d354b;
+  --ivory: #f5efe3;
+  --muted: #a9a1b6;
+  --dim: #7a7289;
+  --amber: #f3b544;
+  --teal: #53c7ba;
+  --ok: #8bdc8f;
+  --bad: #ff7366;
+  --display: "Didot", "Bodoni 72", "Bodoni MT", "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+  --body: "Avenir Next", Avenir, "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--ink); color: var(--ivory); font-family: var(--body); font-size: 16px; line-height: 1.45;
+  -webkit-text-size-adjust: 100%; -webkit-tap-highlight-color: transparent; overscroll-behavior: none; touch-action: manipulation;
+}
+button, input, select { font: inherit; color: inherit; }
+button { cursor: pointer; }
+[hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.screen { min-height: 100%; }
+
+/* ---------------------------------------------------------- beállítás -- */
+#setup { padding: calc(24px + env(safe-area-inset-top)) max(20px, env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+.wrap { max-width: 760px; margin: 0 auto; }
+h1 { font-family: var(--display); font-weight: 400; font-size: clamp(34px, 7vw, 52px); line-height: 1.05; margin: 0 0 6px; letter-spacing: .01em; }
+h1 em { color: var(--amber); font-style: italic; }
+.lead { color: var(--muted); margin: 0 0 26px; max-width: 34em; }
+h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: 30px 0 12px; }
+.instr { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); }
+.instr label { display: block; position: relative; background: var(--panel); border: 1.5px solid var(--line); border-radius: 14px; padding: 16px 16px 14px; cursor: pointer; transition: border-color .15s, background .15s; }
+.instr input { position: absolute; opacity: 0; pointer-events: none; }
+.instr label:has(input:checked) { border-color: var(--amber); background: #2d2533; }
+.instr .big { font-family: var(--display); font-size: 30px; line-height: 1; }
+.instr .big small { font-family: var(--body); font-size: 14px; color: var(--muted); margin-left: 4px; }
+.instr .strings { color: var(--amber); font-weight: 600; margin: 8px 0 2px; }
+.instr .desc { color: var(--muted); font-size: 14px; }
+.rows { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 16px; border-top: 1px solid var(--line); }
+.row:first-child { border-top: 0; }
+.row .lbl { min-width: 0; }
+.row .lbl b { display: block; font-weight: 600; }
+.row .lbl span { display: block; color: var(--muted); font-size: 13.5px; }
+.seg { display: inline-flex; background: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: 3px; flex-shrink: 0; }
+.seg button { border: 0; background: transparent; padding: 7px 12px; border-radius: 7px; color: var(--muted); font-size: 14.5px; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--panel-2); color: var(--ivory); box-shadow: inset 0 0 0 1px var(--line); }
+.stepper { display: inline-flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.stepper button { width: 38px; height: 38px; border-radius: 10px; border: 1px solid var(--line); background: var(--ink); font-size: 20px; line-height: 1; }
+.stepper output { min-width: 92px; text-align: center; font-variant-numeric: tabular-nums; font-weight: 600; }
+.switch { position: relative; width: 52px; height: 30px; flex-shrink: 0; }
+.switch input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; z-index: 1; }
+.switch span { position: absolute; inset: 0; background: var(--line); border-radius: 30px; transition: background .15s; }
+.switch span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 24px; height: 24px; border-radius: 50%; background: var(--ivory); transition: transform .15s; }
+.switch input:checked + span { background: var(--teal); }
+.switch input:checked + span::after { transform: translateX(22px); }
+.note { background: #231d22; border: 1px solid #4a3a2c; border-radius: 14px; padding: 14px 16px; color: #e8dccb; font-size: 14.5px; }
+.note b { color: var(--amber); }
+.note ul { margin: 6px 0 0; padding-left: 18px; }
+.note li { margin: 4px 0; }
+.cta { margin-top: 26px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.btn { border: 0; border-radius: 12px; padding: 14px 22px; font-weight: 600; font-size: 17px; background: var(--panel-2); box-shadow: inset 0 0 0 1px var(--line); }
+.btn.primary { background: var(--amber); color: #241a06; box-shadow: none; }
+.btn.ghost { background: transparent; color: var(--muted); padding: 10px 6px; font-weight: 500; font-size: 15px; text-decoration: underline; text-underline-offset: 3px; }
+.err { margin-top: 16px; padding: 12px 14px; border-radius: 12px; background: #3a1c1f; border: 1px solid #6d2c30; color: #ffd6d1; }
+
+/* ------------------------------------------------------------ hangoló -- */
+#tuner { display: flex; flex-direction: column; min-height: 100%; }
+.topbar { display: flex; align-items: center; gap: 12px; padding: calc(10px + env(safe-area-inset-top)) max(14px, env(safe-area-inset-right)) 10px max(14px, env(safe-area-inset-left)); border-bottom: 1px solid var(--line); background: var(--stage); }
+.topbar .iconbtn { border: 1px solid var(--line); background: var(--panel); border-radius: 10px; padding: 7px 11px; font-size: 14.5px; color: var(--muted); white-space: nowrap; }
+.prog { flex: 1; min-width: 0; }
+.prog .txt { font-size: 13.5px; color: var(--muted); display: flex; justify-content: space-between; gap: 8px; }
+.prog .txt b { color: var(--ivory); font-weight: 600; }
+.prog .bar { height: 5px; background: var(--line); border-radius: 5px; margin-top: 5px; overflow: hidden; }
+.prog .bar i { display: block; height: 100%; width: 0; background: var(--ok); border-radius: 5px; transition: width .3s; }
+
+.main { flex: 1; display: grid; gap: 14px; padding: 14px max(14px, env(safe-area-inset-right)) 14px max(14px, env(safe-area-inset-left)); align-content: start; max-width: 1180px; width: 100%; margin: 0 auto; }
+@media (min-width: 900px) and (orientation: landscape) {
+  .main { grid-template-columns: 1fr 1.1fr; align-items: start; }
+  .col-left { grid-column: 1; } .col-right { grid-column: 2; grid-row: 1 / span 2; }
+  .extras { grid-row: 2; }
+}
+.main > .gauge { order: 1; } .main > .extras { order: 2; }
+@media (min-width: 900px) and (orientation: landscape) { .main > .gauge, .main > .extras { order: 0; } }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 16px; }
+
+.keyhead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.keyname { font-family: var(--display); font-size: clamp(50px, 12vw, 84px); line-height: .95; letter-spacing: -.01em; }
+.keyname.black-key { color: var(--amber); }
+.keysub { color: var(--muted); margin-top: 6px; font-size: 15px; }
+.keyloc { margin-top: 10px; font-size: 15.5px; }
+.keyloc b { color: var(--amber); }
+.donebtn { border: 1px solid var(--line); background: var(--ink); border-radius: 12px; padding: 9px 12px; font-size: 14.5px; color: var(--muted); white-space: nowrap; }
+.donebtn[aria-pressed="true"] { border-color: var(--ok); color: var(--ok); background: #1c2a1f; }
+
+.strings { margin-top: 14px; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; }
+.strings .sl { font-size: 13.5px; color: var(--muted); }
+.chips { display: inline-flex; gap: 6px; }
+.chip { width: 40px; height: 40px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--ink); color: var(--muted); font-weight: 600; display: inline-grid; place-items: center; font-size: 15px; }
+.chip.cur { border-color: var(--amber); color: var(--amber); background: #2d2533; }
+.chip.done { border-color: var(--ok); color: var(--ok); }
+.chip.cur.done { background: #1c2a1f; }
+.countsel { font-size: 13px; color: var(--muted); }
+.countsel select { background: var(--ink); border: 1px solid var(--line); border-radius: 8px; padding: 4px 6px; margin-left: 4px; }
+.stringhint { margin-top: 10px; font-size: 14px; color: #d9cfbd; background: #2a2330; border-radius: 10px; padding: 9px 12px; }
+
+/* billentyűzet */
+.kbdwrap { margin-top: 16px; }
+.kbd { position: relative; height: clamp(120px, 26vw, 170px); user-select: none; -webkit-user-select: none; }
+.kbd .w, .kbd .b { position: absolute; top: 0; border-radius: 0 0 7px 7px; }
+.kbd .w { height: 100%; background: linear-gradient(#fbf7ef, #e9e1d3); border: 1px solid #b9b0a1; border-top: 0; }
+.kbd .b { height: 62%; background: linear-gradient(#2a2530, #0d0b10); border: 1px solid #000; z-index: 2; box-shadow: 0 2px 2px rgba(0,0,0,.4); }
+.kbd .w.done { background: linear-gradient(#e7f7e3, #c9e8c4); }
+.kbd .b.done { background: linear-gradient(#2f5133, #183019); }
+.kbd .tgt.w { background: linear-gradient(#ffd98a, var(--amber)); border-color: #b77f12; }
+.kbd .tgt.b { background: linear-gradient(#ffcd6a, #c98a10); border-color: #7a5208; }
+.kbd .tgt { animation: pulse 1.6s ease-in-out infinite; }
+@keyframes pulse { 50% { filter: brightness(1.18); } }
+.kbd .lab { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 11px; color: #6c6458; font-weight: 600; }
+.kbd .tgt .lab { color: #4a3305; }
+.kbd .mark { position: absolute; top: -26px; transform: translateX(-50%); font-size: 13px; font-weight: 700; color: var(--amber); white-space: nowrap; z-index: 3; }
+.kbd .mark::after { content: "▼"; display: block; text-align: center; font-size: 10px; line-height: 1; }
+.kbdtop { height: 28px; }
+.overview { margin-top: 14px; }
+.overview .ol { font-size: 12.5px; color: var(--dim); display: flex; justify-content: space-between; margin-bottom: 5px; }
+.ov { display: flex; height: 26px; gap: 1px; cursor: pointer; }
+.ov i { flex: 1; background: #d8d0c2; border-radius: 1px; }
+.ov i.bk { background: #4a4352; height: 64%; }
+.ov i.done { background: var(--ok); }
+.ov i.bk.done { background: #3f8a49; }
+.ov i.cur { background: var(--amber); height: 100%; }
+
+/* mérő */
+.gauge { text-align: center; }
+.status { font-size: 16px; color: var(--muted); min-height: 1.45em; display: flex; justify-content: center; align-items: center; gap: 10px; }
+.status.ok { color: var(--ok); font-weight: 600; }
+.status.warn { color: var(--amber); }
+.lvl { width: 46px; height: 6px; background: var(--line); border-radius: 6px; overflow: hidden; flex-shrink: 0; }
+.lvl i { display: block; height: 100%; width: 0; background: var(--teal); transition: width .08s; }
+.cents { font-family: var(--display); font-size: clamp(64px, 17vw, 112px); line-height: 1; margin: 6px 0 2px; font-variant-numeric: tabular-nums; transition: color .2s, opacity .2s; }
+.cents small { font-size: .38em; color: var(--muted); margin-left: 4px; }
+.cents.stale { opacity: .35; }
+.cents.ok { color: var(--ok); }
+.dir { display: flex; align-items: center; justify-content: center; gap: 14px; min-height: 92px; margin: 4px 0 10px; }
+.dir svg { width: 78px; height: 78px; flex-shrink: 0; transition: transform .2s; }
+.dir .dt { text-align: left; }
+.dir .dt b { display: block; font-size: 23px; line-height: 1.15; }
+.dir .dt span { display: block; color: var(--muted); font-size: 14.5px; }
+.dir .dt em { display: block; font-style: normal; font-weight: 600; margin-top: 2px; }
+.dir.flat svg { color: var(--teal); } .dir.flat em { color: var(--teal); }
+.dir.sharp svg { color: var(--bad); transform: scaleX(-1); } .dir.sharp em { color: var(--bad); }
+.dir.ok svg { color: var(--ok); }
+.dir.idle { opacity: .4; }
+
+.meter { position: relative; height: 44px; margin: 6px 6px 0; }
+.meter .track { position: absolute; left: 0; right: 0; top: 14px; height: 16px; border-radius: 16px; background: linear-gradient(90deg, #2b5b62, #2c3440 42%, #2c3440 58%, #6a2d33); }
+.meter .zone { position: absolute; top: 10px; height: 24px; border-radius: 6px; background: rgba(139,220,143,.28); border: 1.5px solid var(--ok); }
+.meter .fill { position: absolute; top: 14px; height: 16px; border-radius: 16px; transition: left .12s, width .12s, background .2s; }
+.meter .needle { position: absolute; top: 0; width: 6px; height: 44px; margin-left: -3px; border-radius: 4px; background: var(--ivory); box-shadow: 0 0 0 2px var(--ink); transition: left .12s; }
+.meter.idle .needle { opacity: .25; }
+.ticks { position: relative; height: 18px; margin: 4px 6px 0; font-size: 12px; color: var(--dim); font-variant-numeric: tabular-nums; }
+.ticks span { position: absolute; transform: translateX(-50%); }
+.ends { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--dim); margin: 2px 6px 0; }
+.hz { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; }
+.hz div { background: var(--ink); border-radius: 12px; padding: 9px 6px; }
+.hz span { display: block; font-size: 12px; color: var(--dim); text-transform: uppercase; letter-spacing: .08em; }
+.hz b { font-variant-numeric: tabular-nums; font-size: 17.5px; font-weight: 600; }
+.small { font-size: 13.5px; color: var(--dim); margin-top: 10px; }
+.calib { margin-top: 12px; text-align: left; }
+.calib button { margin-top: 8px; }
+.tip { margin-top: 12px; font-size: 13.5px; color: var(--muted); text-align: left; }
+
+.bottombar { position: sticky; bottom: 0; display: grid; grid-template-columns: 1fr 1.2fr 1.4fr; gap: 10px; padding: 10px max(14px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(14px, env(safe-area-inset-left)); background: rgba(27,23,35,.94); border-top: 1px solid var(--line); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.bottombar .btn { padding: 15px 8px; font-size: 16px; }
+.bottombar .btn.next.ready { background: var(--ok); color: #10240f; }
+.finish { text-align: center; padding: 28px 16px; }
+.finish h3 { font-family: var(--display); font-weight: 400; font-size: 38px; margin: 0 0 8px; color: var(--ok); }
+</style>
+</head>
+<body>
+
+<!-- ============================================================ BEÁLLÍTÁS -->
+<section id="setup" class="screen">
+  <div class="wrap">
+    <h1>Zongora<em>hangoló</em></h1>
+    <p class="lead">Billentyűről billentyűre végigvezet: megmutatja, melyiket üsd le, merre tekerd a csapot, és mennyi van még hátra. A telefon vagy az iPad mikrofonjával hallgat.</p>
+
+    <h2>1. Hány húros a hangszered?</h2>
+    <div class="instr" id="instrList"></div>
+
+    <h2>2. Beállítások</h2>
+    <div class="rows">
+      <div class="row">
+        <div class="lbl"><b>Alaphang (A4)</b><span>Általában 440 Hz. Ha a zongora egésze mélyebben áll, állítsd lejjebb.</span></div>
+        <div class="stepper"><button type="button" data-a4="-1" aria-label="Csökkentés">−</button><output id="a4Out">440 Hz</output><button type="button" data-a4="1" aria-label="Növelés">+</button></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Nyújtott hangolás</b><span>A mélyet kicsit lejjebb, a magasat kicsit feljebb – így szól tisztán egy igazi zongora.</span></div>
+        <div class="seg" id="stretchSeg"><button type="button" data-v="ki">Ki</button><button type="button" data-v="enyhe">Enyhe</button><button type="button" data-v="normal">Normál</button></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Sorrend</b><span>Ajánlott: A4-től felfelé, aztán A4 alatt lefelé.</span></div>
+        <div class="seg" id="orderSeg"><button type="button" data-v="ajanlott">Ajánlott</button><button type="button" data-v="mely">Mélytől fel</button></div>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Húronként</b><span>A 2–3 húros billentyűknél egyenként vezet végig a húrokon.</span></div>
+        <label class="switch"><input type="checkbox" id="perString"><span></span></label>
+      </div>
+      <div class="row">
+        <div class="lbl"><b>Automatikus továbblépés</b><span>Ha a hang pontos és stabil, magától lép a következőre – nem kell letenni a kulcsot.</span></div>
+        <label class="switch"><input type="checkbox" id="autoNext"><span></span></label>
+      </div>
+    </div>
+
+    <h2>Mielőtt hozzákezdesz</h2>
+    <div class="note">
+      <ul>
+        <li>Kell hozzá <b>hangolókulcs</b> és a több húros billentyűkhöz <b>némító ék vagy filccsík</b>, hogy egyszerre csak egy húr szóljon.</li>
+        <li>Mindig <b>apró mozdulatokkal</b> tekerj: egy hajszálnyi fordítás is sokat változtat a hangon.</li>
+        <li>Ha a zongora nagyon mélyen áll (sok hang 30 centnél is mélyebb), <b>ne húzd fel egyszerre</b>, mert elszakadhat a húr. Inkább állítsd az alaphangot a hangszerhez (az A4-nél felajánlom), vagy hívj hangolót.</li>
+        <li>Tedd a készüléket a húrok közelébe, és legyen csend a szobában.</li>
+      </ul>
+    </div>
+
+    <div class="cta">
+      <button type="button" class="btn primary" id="startBtn">Indítás</button>
+      <span id="resumeInfo" class="small"></span>
+      <button type="button" class="btn ghost" id="resetBtn" hidden>Előről kezdem</button>
+    </div>
+    <div class="err" id="err" hidden></div>
+  </div>
+</section>
+
+<!-- ============================================================== HANGOLÓ -->
+<section id="tuner" class="screen" hidden>
+  <div class="topbar">
+    <button type="button" class="iconbtn" id="backBtn">‹ Beállítások</button>
+    <div class="prog">
+      <div class="txt"><span id="progTxt"></span><span id="progKeys"></span></div>
+      <div class="bar"><i id="progBar"></i></div>
+    </div>
+  </div>
+
+  <div class="main" id="mainArea">
+    <div class="card col-left">
+      <div class="keyhead">
+        <div>
+          <div class="keyname" id="keyName">A4</div>
+          <div class="keysub" id="keySub"></div>
+        </div>
+        <button type="button" class="donebtn" id="doneBtn" aria-pressed="false">✓ Kész</button>
+      </div>
+      <div class="keyloc" id="keyLoc"></div>
+
+      <div class="kbdwrap">
+        <div class="kbdtop"></div>
+        <div class="kbd" id="kbd"></div>
+      </div>
+    </div>
+
+    <div class="card col-left extras">
+      <div class="strings" id="stringsBox" style="margin-top:0">
+        <span class="sl">Húrok:</span>
+        <span class="chips" id="chips"></span>
+        <label class="countsel">ennél a billentyűnél
+          <select id="countSel"><option value="1">1 húr</option><option value="2">2 húr</option><option value="3">3 húr</option></select>
+        </label>
+      </div>
+      <div class="stringhint" id="stringHint" hidden></div>
+      <div class="overview">
+        <div class="ol"><span>Teljes billentyűzet</span><span>zöld = kész · koppints az ugráshoz</span></div>
+        <div class="ov" id="ov"></div>
+      </div>
+    </div>
+
+    <div class="card gauge col-right">
+      <div class="status" id="status"><span id="statusTxt">Üsd le a billentyűt</span><span class="lvl" title="Mikrofon szint"><i id="lvl"></i></span></div>
+      <div class="cents stale" id="cents">—</div>
+      <div class="dir idle" id="dir">
+        <svg viewBox="0 0 80 80" fill="none" stroke="currentColor" stroke-width="7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M16 40A24 24 0 1 1 40 64"/><path d="M49 55l-9 9 9 9"/>
+        </svg>
+        <div class="dt"><b id="dirMain">Várom a hangot</b><span id="dirSub">Üsd le határozottan, és hagyd zengeni.</span><em id="dirAmt"></em></div>
+      </div>
+
+      <div class="meter idle" id="meter">
+        <div class="track"></div>
+        <div class="zone" id="zone"></div>
+        <div class="fill" id="fill"></div>
+        <div class="needle" id="needle" style="left:50%"></div>
+      </div>
+      <div class="ticks" id="ticks"></div>
+      <div class="ends"><span>◀ mély – feljebb kell húzni</span><span>magas – le kell engedni ▶</span></div>
+
+      <div class="hz">
+        <div><span>Cél</span><b id="hzTarget">—</b></div>
+        <div><span>Mért</span><b id="hzMeas">—</b></div>
+        <div><span>Eltérés</span><b id="hzDiff">—</b></div>
+      </div>
+      <div class="small" id="partialNote"></div>
+      <div class="calib note" id="calib" hidden></div>
+      <div class="tip">Tipp: kicsit húzd túl feljebb, majd finoman engedd vissza a célra – így stabilabban a helyén marad a csap.</div>
+    </div>
+  </div>
+
+  <div class="bottombar">
+    <button type="button" class="btn" id="prevBtn">‹ Előző</button>
+    <button type="button" class="btn" id="playBtn">🔊 Hallgasd meg</button>
+    <button type="button" class="btn next" id="nextBtn">Következő ›</button>
+  </div>
+</section>
+
+<script>
+'use strict';
+
+/* ======================================================= HANGSZER-ADATOK */
+// k = billentyű sorszáma a teljes 88-as billentyűzeten (A0 = 1, A4 = 49, C8 = 88); MIDI = k + 20
+const INSTRUMENTS = {
+  '88': { from: 1, to: 88, title: '88', unit: 'billentyű', desc: 'Mai zongora vagy pianínó · A0 – C8' },
+  '85': { from: 1, to: 85, title: '85', unit: 'billentyű', desc: 'Régebbi hangszer · A0 – A7' },
+  '73': { from: 9, to: 81, title: '73', unit: 'billentyű', desc: 'Régi, 6 oktávos hangszer · F1 – F7' },
+};
+// Jellemző húrozás: legmélyen 1 húr, utána 2, középtől felfelé 3. Billentyűnként átállítható.
+function defaultStrings(k) { return k <= 10 ? 1 : k <= 30 ? 2 : 3; }
+
+const HU = ['C', 'Cisz', 'D', 'Disz', 'E', 'F', 'Fisz', 'G', 'Gisz', 'A', 'B', 'H'];
+const HU_ALT = { 1: 'Desz', 3: 'Esz', 6: 'Gesz', 8: 'Asz', 10: 'Aisz' };
+const INTL = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
+const INTL_ALT = { 1: 'D♭', 3: 'E♭', 6: 'G♭', 8: 'A♭', 10: 'B♭' };
+const OCT_HU = ['szubkontra', 'kontra', 'nagy', 'kis', 'egyvonalas', 'kétvonalas', 'háromvonalas', 'négyvonalas', 'ötvonalas'];
+const SUP = ['', '¹', '²', '³', '⁴', '⁵'];
+const isBlackMidi = m => [1, 3, 6, 8, 10].includes(m % 12);
+const midiOf = k => k + 20;
+const pc = k => midiOf(k) % 12;
+const octOf = k => Math.floor(midiOf(k) / 12) - 1;
+const nameHu = k => HU[pc(k)] + octOf(k);
+function helmholtz(k) {
+  const o = octOf(k), n = HU[pc(k)];
+  if (o >= 3) return n.toLowerCase() + SUP[o - 3];
+  if (o === 2) return n;
+  return n + (o === 1 ? '₁' : '₂');
+}
+
+/* ============================================================ ÁLLAPOT */
+const STORE = 'zongorahangolo-v1';
+const S = Object.assign({
+  instr: '88', a4: 440, stretch: 'enyhe', order: 'ajanlott', perString: true, auto: true,
+  strings: {},   // { instr: { k: húrszám } }
+  prog: {},      // { instr: { idx, done: { "k-s": 1 } } }
+}, loadState());
+function loadState() { try { return JSON.parse(localStorage.getItem(STORE)) || {}; } catch (e) { return {}; } }
+function save() { try { localStorage.setItem(STORE, JSON.stringify(S)); } catch (e) { /* privát mód */ } }
+const inst = () => INSTRUMENTS[S.instr];
+const prog = () => (S.prog[S.instr] ||= { idx: 0, done: {} });
+const stringsFor = k => (S.strings[S.instr] && S.strings[S.instr][k]) || defaultStrings(k);
+function totalStrings(id) { const I = INSTRUMENTS[id]; let t = 0; for (let k = I.from; k <= I.to; k++) t += (S.strings[id] && S.strings[id][k]) || defaultStrings(k); return t; }
+
+/* --------------------------------------------- nyújtás (stretch), cent */
+function stretchCents(k) {
+  const f = S.stretch === 'ki' ? 0 : S.stretch === 'enyhe' ? 0.5 : 1;
+  if (!f) return 0;
+  // Railsback-görbe közelítése: A0 kb. −30 ¢, C8 kb. +30 ¢ (Normál); középen (kb. C4–E5) nulla
+  if (k < 40) return -f * 30 * Math.pow((40 - k) / 39, 2);
+  if (k > 52) return f * 30 * Math.pow((k - 52) / 36, 2);
+  return 0;
+}
+const etHz = k => 440 * Math.pow(2, (k - 49) / 12);
+const targetHz = k => S.a4 * Math.pow(2, (k - 49) / 12) * Math.pow(2, stretchCents(k) / 1200);
+// A mély hangoknak gyenge az alaphangjuk (és a telefon mikrofonja sem hallja), ezért ott felhangot mérünk.
+const partialFor = k => { const f = etHz(k); return f < 60 ? 4 : f < 130 ? 2 : 1; };
+
+/* --------------------------------------------------------- lépések */
+let steps = [];
+function buildSteps() {
+  const I = inst(), keys = [];
+  if (S.order === 'ajanlott') {
+    const a = Math.min(Math.max(49, I.from), I.to);
+    for (let k = a; k <= I.to; k++) keys.push(k);
+    for (let k = a - 1; k >= I.from; k--) keys.push(k);
+  } else for (let k = I.from; k <= I.to; k++) keys.push(k);
+  steps = [];
+  for (const k of keys) {
+    const n = stringsFor(k);
+    if (S.perString && n > 1) for (let s = 0; s < n; s++) steps.push({ k, s, n });
+    else steps.push({ k, s: -1, n });
+  }
+}
+const stepId = st => st.k + '-' + st.s;
+const isDone = st => !!prog().done[stepId(st)];
+function keyDone(k) {
+  const n = stringsFor(k), d = prog().done;
+  if (d[k + '--1']) return true;
+  if (n <= 1) return false;
+  for (let s = 0; s < n; s++) if (!d[k + '-' + s]) return false;
+  return true;
+}
+const cur = () => steps[Math.min(prog().idx, steps.length - 1)];
+
+/* ===================================================== HANGMÉRÉS (DSP) */
+// ==ESTIMATOR==
+// Célzott mérés: tudjuk, melyik hangot várjuk, ezért csak a cél körül (±150 cent) keressük a csúcsot
+// Hann-ablakos DFT-vel, finom rácson, parabolás finomítással. Ez zajos szobában is stabil.
+const SEARCH_CENTS = 150;
+const _hann = {};
+function hann(N) {
+  if (_hann[N]) return _hann[N];
+  const w = new Float32Array(N);
+  for (let i = 0; i < N; i++) w[i] = 0.5 - 0.5 * Math.cos(2 * Math.PI * i / (N - 1));
+  return (_hann[N] = w);
+}
+function windowLen(fm) { return fm < 150 ? 32768 : fm < 400 ? 16384 : fm < 1000 ? 8192 : 4096; }
+function dftPow(x, f, sr) {
+  const w = 2 * Math.PI * f / sr, c = Math.cos(w), s = Math.sin(w);
+  let re = 0, im = 0, cr = 1, ci = 0;
+  for (let i = 0, N = x.length; i < N; i++) {
+    const v = x[i]; re += v * cr; im -= v * ci;
+    const t = cr * c - ci * s; ci = cr * s + ci * c; cr = t;
+  }
+  return re * re + im * im;
+}
+function parab(a, b, c) { const d = a - 2 * b + c; return d === 0 ? 0 : 0.5 * (a - c) / d; }
+/**
+ * buf: időtartománybeli minták (a legfrissebb a végén), sr: mintavétel, fm: a mért részhang várható frekvenciája
+ * Eredmény: null (csend) | { level, quiet } | { level, edge: 'low'|'high' } | { level, f, cents, q }
+ */
+function measure(buf, sr, fm) {
+  const N = Math.min(windowLen(fm), buf.length), off = buf.length - N;
+  let mean = 0, rms = 0;
+  for (let i = 0; i < N; i++) mean += buf[off + i];
+  mean /= N;
+  for (let i = 0; i < N; i++) { const v = buf[off + i] - mean; rms += v * v; }
+  rms = Math.sqrt(rms / N);
+  const level = rms;
+  if (rms < 0.0015) return { level, quiet: true };
+  const w = hann(N), x = new Float32Array(N);
+  for (let i = 0; i < N; i++) x[i] = (buf[off + i] - mean) * w[i];
+  const lo = fm * Math.pow(2, -SEARCH_CENTS / 1200), hi = fm * Math.pow(2, SEARCH_CENTS / 1200);
+  const step = sr / N / 4, cnt = Math.max(9, Math.ceil((hi - lo) / step) + 1), st = (hi - lo) / (cnt - 1);
+  const p = new Float64Array(cnt);
+  let im = 0;
+  for (let i = 0; i < cnt; i++) { p[i] = dftPow(x, lo + i * st, sr); if (p[i] > p[im]) im = i; }
+  const sorted = Array.from(p).sort((a, b) => a - b), med = sorted[cnt >> 1] || 1e-20;
+  const q = p[im] / med;
+  if (q < 15) return { level, quiet: true };
+  if (im <= 1) return { level, edge: 'low', q };
+  if (im >= cnt - 2) return { level, edge: 'high', q };
+  let f = lo + (im + parab(Math.log(p[im - 1]), Math.log(p[im]), Math.log(p[im + 1]))) * st;
+  // második, finomabb kör a csúcs körül
+  const st2 = st / 4, a = dftPow(x, f - st2, sr), b = dftPow(x, f, sr), c = dftPow(x, f + st2, sr);
+  if (b >= a && b >= c) f += parab(Math.log(a), Math.log(b), Math.log(c)) * st2;
+  else f += (c > a ? 1 : -1) * st2 * 0.5;
+  return { level, f, cents: 1200 * Math.log2(f / fm), q };
+}
+// ==/ESTIMATOR==
+
+/* ======================================================= HANG + MIKROFON */
+let ctx = null, analyser = null, stream = null, buf = null, running = false, wakeLock = null;
+let pauseUntil = 0, ignoreUntil = 0;
+async function startAudio() {
+  if (analyser) { if (ctx.state !== 'running') await ctx.resume(); return; }
+  if (!window.isSecureContext || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    throw new Error('insecure');
+  }
+  ctx = new (window.AudioContext || window.webkitAudioContext)();
+  const resumed = ctx.resume();  // még a koppintáson belül (iOS)
+  stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false }, video: false });
+  await resumed;
+  const src = ctx.createMediaStreamSource(stream);
+  analyser = ctx.createAnalyser();
+  analyser.fftSize = 32768;
+  analyser.smoothingTimeConstant = 0;
+  const sink = ctx.createGain(); sink.gain.value = 0;
+  src.connect(analyser); analyser.connect(sink); sink.connect(ctx.destination);
+  buf = new Float32Array(analyser.fftSize);
+}
+async function keepAwake() { try { if ('wakeLock' in navigator) wakeLock = await navigator.wakeLock.request('screen'); } catch (e) { /* nem baj */ } }
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible' && running) { keepAwake(); if (ctx && ctx.state !== 'running') ctx.resume(); }
+});
+function playRef() {
+  if (!ctx) return;
+  const st = cur(), fm = targetHz(st.k) * partialFor(st.k);
+  const t = ctx.currentTime, o = ctx.createOscillator(), g = ctx.createGain();
+  o.type = 'sine'; o.frequency.value = fm;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.3, t + 0.03);
+  g.gain.setValueAtTime(0.3, t + 1.2); g.gain.linearRampToValueAtTime(0, t + 1.7);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + 1.75);
+  pauseUntil = performance.now() + 2100; // ne a saját hangunkat mérjük
+  resetReadings();
+}
+
+/* ============================================================== UI: DOM */
+const $ = id => document.getElementById(id);
+const fmt = (v, d = 2) => v.toLocaleString('hu-HU', { minimumFractionDigits: d, maximumFractionDigits: d });
+const sgn = (v, d = 1) => (v > 0 ? '+' : v < 0 ? '−' : '±') + fmt(Math.abs(v), d);
+
+function renderSetup() {
+  const L = $('instrList'); L.innerHTML = '';
+  for (const id of ['88', '85', '73']) {
+    const I = INSTRUMENTS[id], lab = document.createElement('label');
+    lab.innerHTML = `<input type="radio" name="instr" value="${id}" ${S.instr === id ? 'checked' : ''}>
+      <div class="big">${I.title}<small>${I.unit}</small></div>
+      <div class="strings">kb. ${totalStrings(id)} húr</div>
+      <div class="desc">${I.desc}</div>`;
+    lab.querySelector('input').addEventListener('change', () => { S.instr = id; save(); renderSetup(); });
+    L.appendChild(lab);
+  }
+  $('a4Out').textContent = fmt(S.a4, S.a4 % 1 ? 1 : 0) + ' Hz';
+  for (const b of $('stretchSeg').children) b.setAttribute('aria-pressed', b.dataset.v === S.stretch);
+  for (const b of $('orderSeg').children) b.setAttribute('aria-pressed', b.dataset.v === S.order);
+  $('perString').checked = S.perString; $('autoNext').checked = S.auto;
+  buildSteps();
+  const nDone = steps.filter(isDone).length;
+  $('resumeInfo').textContent = nDone ? `Eddig ${nDone} / ${steps.length} lépés kész ezen a hangszeren.` : '';
+  $('startBtn').textContent = nDone ? 'Folytatás' : 'Indítás';
+  $('resetBtn').hidden = !nDone;
+}
+document.querySelectorAll('[data-a4]').forEach(b => b.addEventListener('click', () => {
+  S.a4 = Math.min(452, Math.max(415, Math.round(S.a4) + +b.dataset.a4)); save(); renderSetup();
+}));
+$('stretchSeg').addEventListener('click', e => { const v = e.target.dataset && e.target.dataset.v; if (v) { S.stretch = v; save(); renderSetup(); } });
+$('orderSeg').addEventListener('click', e => { const v = e.target.dataset && e.target.dataset.v; if (v) { S.order = v; prog().idx = 0; save(); renderSetup(); } });
+$('perString').addEventListener('change', e => { const k = steps.length ? cur().k : null; S.perString = e.target.checked; buildSteps(); jumpToKey(k, false); save(); });
+$('autoNext').addEventListener('change', e => { S.auto = e.target.checked; save(); });
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm('Biztosan törlöd az eddigi haladást ennél a hangszernél?')) return;
+  S.prog[S.instr] = { idx: 0, done: {} }; save(); renderSetup();
+});
+$('startBtn').addEventListener('click', async () => {
+  $('err').hidden = true;
+  try {
+    await startAudio();
+  } catch (e) {
+    const E = $('err'); E.hidden = false;
+    if (e && e.message === 'insecure') E.innerHTML = 'A mikrofon csak biztonságos (https://) címen érhető el. Nyisd meg a GitHub Pages címről.';
+    else if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) E.innerHTML = 'Nem kaptam engedélyt a mikrofonhoz. iPaden/iPhone-on: <b>Beállítások › Safari › Mikrofon</b> (vagy a címsor „aA” menüjében a webhely beállításai), majd töltsd újra az oldalt.';
+    else if (e && e.name === 'NotFoundError') E.textContent = 'Nem találok mikrofont ezen a készüléken.';
+    else E.textContent = 'Nem sikerült elindítani a mikrofont: ' + (e && (e.message || e.name));
+    return;
+  }
+  buildSteps();
+  if (prog().idx >= steps.length) prog().idx = 0;
+  $('setup').hidden = true; $('tuner').hidden = false;
+  running = true; keepAwake();
+  renderStep(); window.scrollTo(0, 0);
+  if (!loopOn) { loopOn = true; loop(); }
+});
+$('backBtn').addEventListener('click', () => { running = false; $('tuner').hidden = true; $('setup').hidden = false; renderSetup(); window.scrollTo(0, 0); });
+
+/* ------------------------------------------------- lépés megjelenítése */
+function renderStep() {
+  const P = prog();
+  if (P.idx >= steps.length) return renderFinish();
+  $('mainArea').classList.remove('finished');
+  const st = cur(), k = st.k, I = inst(), m = midiOf(k), black = isBlackMidi(m);
+  // név
+  $('keyName').textContent = nameHu(k);
+  $('keyName').classList.toggle('black-key', black);
+  const p = pc(k);
+  const intl = INTL[p] + octOf(k) + (INTL_ALT[p] ? ' / ' + INTL_ALT[p] + octOf(k) : '');
+  $('keySub').textContent = `${helmholtz(k)} · ${OCT_HU[octOf(k)]} oktáv · ${HU_ALT[p] ? HU_ALT[p] + ' · ' : ''}nemzetközi: ${intl}`;
+  const pos = k - I.from + 1, tot = I.to - I.from + 1, d = m - 60;
+  const rel = d === 0 ? 'Ez a <b>középső C</b>.' : `A középső C-től <b>${Math.abs(d)}</b> billentyűvel ${d > 0 ? 'jobbra' : 'balra'}.`;
+  $('keyLoc').innerHTML = `<b>${black ? 'Fekete' : 'Fehér'}</b> billentyű · balról a <b>${pos}.</b> (${tot}-ból). ${rel}`;
+  // húrok
+  $('countSel').value = String(st.n);
+  const chips = $('chips'); chips.innerHTML = '';
+  for (let s = 0; s < st.n; s++) {
+    const c = document.createElement('span');
+    const sid = S.perString && st.n > 1 ? k + '-' + s : k + '--1';
+    c.className = 'chip' + ((st.s === s || st.s === -1) ? ' cur' : '') + (P.done[sid] ? ' done' : '');
+    c.textContent = s + 1;
+    chips.appendChild(c);
+  }
+  const H = $('stringHint');
+  if (st.n > 1 && st.s >= 0) {
+    H.hidden = false;
+    H.innerHTML = `Most a <b>${st.s + 1}. húrt</b> hangold a ${st.n}-ból. A többit némítsd le (ékkel vagy filccsíkkal), hogy csak ez szóljon.` +
+      (st.s > 0 ? ' Ha végeztél, a végén vedd ki az éket, és hallgasd meg együtt: tiszta egyhangzás, lebegés nélkül.' : '');
+  } else if (st.n > 1) {
+    H.hidden = false;
+    H.innerHTML = `Ennél a billentyűnél ${st.n} húr van. Némítsd le a többit, és egyenként hangold őket ugyanarra a célra.`;
+  } else H.hidden = true;
+  $('doneBtn').setAttribute('aria-pressed', isDone(st));
+  // célértékek
+  const n = partialFor(k), tgt = targetHz(k), sc = stretchCents(k);
+  $('hzTarget').textContent = fmt(tgt, tgt < 100 ? 2 : tgt < 1000 ? 2 : 1) + ' Hz';
+  $('partialNote').innerHTML =
+    (n > 1 ? `Mély hang: a ${n}. felhangot mérem (${fmt(tgt * n, 1)} Hz), mert az alaphangot a mikrofon alig hallja. ` : '') +
+    (Math.abs(sc) >= 0.5 ? `A nyújtott hangolás miatt a cél ${sgn(sc)} cent az egyenletestől.` : '');
+  $('playBtn').textContent = n > 1 ? '🔊 Felhang' : '🔊 Hallgasd meg';
+  drawKbd(k); drawOverview(k); renderProgress();
+  resetReadings(); ignoreUntil = performance.now() + 450;
+  $('calib').hidden = true;
+}
+function renderProgress() {
+  const P = prog(), I = inst();
+  const nd = steps.filter(isDone).length;
+  let kd = 0; for (let k = I.from; k <= I.to; k++) if (keyDone(k)) kd++;
+  $('progTxt').innerHTML = `<b>${Math.min(P.idx + 1, steps.length)}.</b> lépés / ${steps.length}`;
+  $('progKeys').textContent = `${kd} / ${I.to - I.from + 1} billentyű kész`;
+  $('progBar').style.width = (nd / steps.length * 100) + '%';
+  const st = cur();
+  $('nextBtn').classList.toggle('ready', !!(st && isDone(st)));
+}
+function renderFinish() {
+  const card = $('mainArea').querySelector('.col-left');
+  $('keyName').textContent = 'Kész!';
+  $('keySub').textContent = 'Végigértél az összes billentyűn.';
+  $('keyLoc').innerHTML = 'Érdemes egy második, ellenőrző kört is menni: az első kör után a húrok feszültsége kicsit átrendeződik. Koppints a billentyűzet-sávon bármelyik hangra, vagy menj vissza a Beállításokba, és kezdd előről.';
+  drawOverview(-1); renderProgress();
+  $('stringHint').hidden = true;
+}
+
+/* -------------------------------------------------------- billentyűzet */
+const whiteIdx = {}; { let w = 0; for (let k = 1; k <= 88; k++) { if (!isBlackMidi(midiOf(k))) whiteIdx[k] = w++; } }
+function drawKbd(k) {
+  const el = $('kbd'), I = inst();
+  const W = el.clientWidth < 520 ? 11 : 15;
+  const wOf = kk => isBlackMidi(midiOf(kk)) ? whiteIdx[kk - 1] + 0.5 : whiteIdx[kk];
+  let minW = Infinity, maxW = -Infinity;
+  for (let kk = I.from; kk <= I.to; kk++) if (!isBlackMidi(midiOf(kk))) { minW = Math.min(minW, whiteIdx[kk]); maxW = Math.max(maxW, whiteIdx[kk]); }
+  let start = Math.round(wOf(k) - (W - 1) / 2);
+  start = Math.max(minW, Math.min(start, maxW - W + 1));
+  const ww = 100 / W;
+  let html = '';
+  for (let kk = I.from; kk <= I.to; kk++) {
+    const black = isBlackMidi(midiOf(kk));
+    if (black) {
+      const left = (whiteIdx[kk - 1] - start + 1 - 0.31) * ww;
+      if (left < 0 || left + ww * 0.62 > 100) continue;
+      html += `<div class="b${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}" style="left:${left}%;width:${ww * 0.62}%"></div>`;
+    } else {
+      const i = whiteIdx[kk] - start;
+      if (i < 0 || i >= W) continue;
+      const lab = pc(kk) === 0 ? 'C' + octOf(kk) : kk === k ? nameHu(kk) : '';
+      html += `<div class="w${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}" style="left:${i * ww}%;width:${ww}%"><span class="lab">${lab}</span></div>`;
+    }
+  }
+  const mx = (wOf(k) - start + 0.5) * ww;
+  html += `<div class="mark" style="left:${mx}%">${nameHu(k)}</div>`;
+  el.innerHTML = html;
+}
+function drawOverview(k) {
+  const el = $('ov'), I = inst();
+  let h = '';
+  for (let kk = I.from; kk <= I.to; kk++) {
+    h += `<i data-k="${kk}" class="${isBlackMidi(midiOf(kk)) ? 'bk' : ''}${keyDone(kk) ? ' done' : ''}${kk === k ? ' cur' : ''}"></i>`;
+  }
+  el.innerHTML = h;
+}
+$('ov').addEventListener('click', e => {
+  const r = $('ov').getBoundingClientRect(), I = inst();
+  const kk = I.from + Math.floor((e.clientX - r.left) / r.width * (I.to - I.from + 1));
+  jumpToKey(Math.max(I.from, Math.min(I.to, kk)));
+});
+function jumpToKey(k, render = true) {
+  if (k == null) return;
+  const i = steps.findIndex(st => st.k === k && !isDone(st));
+  const j = i >= 0 ? i : steps.findIndex(st => st.k === k);
+  if (j >= 0) prog().idx = j;
+  save();
+  if (render && running) renderStep();
+}
+window.addEventListener('resize', () => { if (running && prog().idx < steps.length) drawKbd(cur().k); });
+
+/* ------------------------------------------------------------- gombok */
+function go(d) { const P = prog(); P.idx = Math.max(0, Math.min(steps.length, P.idx + d)); save(); renderStep(); }
+$('prevBtn').addEventListener('click', () => go(-1));
+$('nextBtn').addEventListener('click', () => go(1));
+$('playBtn').addEventListener('click', playRef);
+$('doneBtn').addEventListener('click', () => {
+  const st = cur(), id = stepId(st), P = prog();
+  if (P.done[id]) delete P.done[id]; else P.done[id] = 1;
+  save(); renderStep();
+});
+$('countSel').addEventListener('change', e => {
+  const st = cur(), k = st.k;
+  (S.strings[S.instr] ||= {})[k] = +e.target.value;
+  buildSteps(); jumpToKey(k); save();
+});
+
+/* ======================================================= MÉRÉS → KIJELZÉS */
+let hist = [], lastValid = 0, inTuneSince = 0, autoTimer = null, lastReading = null, loopOn = false;
+function resetReadings() { hist = []; lastValid = 0; inTuneSince = 0; lastReading = null; clearTimeout(autoTimer); autoTimer = null; showIdle(); }
+const median = a => { const s = [...a].sort((x, y) => x - y); return s[s.length >> 1]; };
+const pos = c => { const v = Math.min(Math.abs(c), 50) / 50; return 50 + Math.sign(c) * Math.sqrt(v) * 50; };
+
+function initTicks() {
+  const t = $('ticks'); let h = '';
+  for (const c of [-50, -20, -5, 0, 5, 20, 50]) h += `<span style="left:${pos(c)}%">${c > 0 ? '+' + c : c < 0 ? '−' + -c : '0'}</span>`;
+  t.innerHTML = h;
+  const z = $('zone'); z.style.left = pos(-2) + '%'; z.style.width = (pos(2) - pos(-2)) + '%';
+}
+function setStatus(txt, cls = '') { $('statusTxt').textContent = txt; $('status').className = 'status ' + cls; }
+function showIdle(msg) {
+  setStatus(msg || `Üsd le: ${steps.length && prog().idx < steps.length ? nameHu(cur().k) : ''}`);
+  const c = $('cents'); c.classList.add('stale'); c.classList.remove('ok');
+  if (!lastReading) { c.innerHTML = '—'; $('hzMeas').textContent = '—'; $('hzDiff').textContent = '—'; $('meter').classList.add('idle'); $('fill').style.width = 0; $('needle').style.left = '50%'; }
+  const D = $('dir'); D.className = 'dir idle';
+  if (!lastReading) { $('dirMain').textContent = 'Várom a hangot'; $('dirSub').textContent = 'Üsd le határozottan, és hagyd zengeni.'; $('dirAmt').textContent = ''; }
+}
+function showReading(c, f) {
+  const st = cur(), tgt = targetHz(st.k), ok = Math.abs(c) <= 2;
+  const C = $('cents');
+  C.classList.remove('stale'); C.classList.toggle('ok', ok);
+  C.innerHTML = sgn(c, Math.abs(c) < 10 ? 1 : 0) + '<small>cent</small>';
+  $('hzMeas').textContent = fmt(f, 2) + ' Hz';
+  $('hzDiff').textContent = sgn(f - tgt, 2) + ' Hz';
+  const M = $('meter'); M.classList.remove('idle');
+  const p = pos(c);
+  $('needle').style.left = p + '%';
+  const F = $('fill');
+  F.style.left = Math.min(p, 50) + '%'; F.style.width = Math.abs(p - 50) + '%';
+  F.style.background = ok ? 'var(--ok)' : c < 0 ? 'var(--teal)' : 'var(--bad)';
+  const D = $('dir'), a = Math.abs(c);
+  const amt = a > 20 ? 'még sokat' : a > 8 ? 'még egy keveset' : a > 2 ? 'már csak egy hajszálat' : '';
+  if (ok) {
+    D.className = 'dir ok';
+    $('dirMain').textContent = 'Pontos!'; $('dirSub').textContent = 'Ne tekerd tovább.'; $('dirAmt').textContent = '';
+  } else if (c < 0) {
+    D.className = 'dir flat';
+    $('dirMain').textContent = 'Tekerd jobbra ↻'; $('dirSub').textContent = 'az óramutató irányába – feljebb húzza a hangot'; $('dirAmt').textContent = amt;
+  } else {
+    D.className = 'dir sharp';
+    $('dirMain').textContent = 'Tekerd balra ↺'; $('dirSub').textContent = 'az óramutatóval szemben – lejjebb engedi a hangot'; $('dirAmt').textContent = amt;
+  }
+}
+function maybeCalibHint(c, f) {
+  const st = cur(), E = $('calib');
+  if (st.k !== 49 || Math.abs(c) < 10 || hist.length < 4) { if (st.k !== 49) E.hidden = true; return; }
+  const v = Math.round(f * 10) / 10;
+  E.hidden = false;
+  E.innerHTML = `Az A4 most <b>${fmt(v, 1)} Hz</b>, ${c < 0 ? 'mélyebben' : 'magasabban'} áll a beállított ${fmt(S.a4, S.a4 % 1 ? 1 : 0)} Hz-nél. ` +
+    (c < -30 ? 'Ha az egész zongora ennyire mélyen van, egy lépésben felhúzni kockázatos (húrszakadás). ' : '') +
+    `Hangolhatsz a zongora mostani hangmagasságához is – ilyenkor minden hang ehhez igazodik.<br>` +
+    `<button type="button" class="btn" id="calibBtn">Legyen az alaphang ${fmt(v, 1)} Hz</button>`;
+  $('calibBtn').onclick = () => { S.a4 = v; save(); E.hidden = true; renderStep(); };
+}
+function markDoneAuto() {
+  const st = cur(), P = prog();
+  if (!P.done[stepId(st)]) { P.done[stepId(st)] = 1; save(); }
+  setStatus('Tökéletes – kész ✓', 'ok');
+  $('doneBtn').setAttribute('aria-pressed', 'true');
+  drawKbd(st.k); drawOverview(st.k); renderProgress();
+  if (S.auto && !autoTimer) {
+    const myIdx = P.idx;
+    autoTimer = setTimeout(() => { autoTimer = null; if (running && prog().idx === myIdx) go(1); }, 1500);
+  }
+}
+function loop() {
+  setTimeout(loop, 70);
+  if (!running || !analyser || prog().idx >= steps.length) return;
+  const now = performance.now();
+  if (now < pauseUntil) { setStatus('Referenciahang szól…'); $('lvl').style.width = '0'; return; }
+  analyser.getFloatTimeDomainData(buf);
+  const st = cur(), n = partialFor(st.k), fm = targetHz(st.k) * n;
+  const r = measure(buf, ctx.sampleRate, fm);
+  $('lvl').style.width = Math.min(100, Math.sqrt((r && r.level) || 0) * 400) + '%';
+  if (now < ignoreUntil) return;
+  if (r && r.f) {
+    hist.push(r.cents); if (hist.length > 5) hist.shift();
+    lastValid = now;
+    const c = median(hist), f = fm * Math.pow(2, c / 1200) / n;
+    lastReading = { c, f };
+    showReading(c, f);
+    maybeCalibHint(c, f);
+    if (Math.abs(c) <= 1.5 && hist.length >= 3) {
+      if (!inTuneSince) inTuneSince = now;
+      if (now - inTuneSince > 1200) markDoneAuto();
+      else setStatus('Pontos – tartsd így…', 'ok');
+    } else {
+      inTuneSince = 0;
+      setStatus('Hallom', '');
+    }
+  } else if (r && r.edge) {
+    hist = []; inTuneSince = 0;
+    if (now - lastValid > 400) {
+      lastReading = null; showIdle();
+      setStatus(r.edge === 'low' ? 'Ez jóval mélyebb a célnál – jó billentyűt ütöttél?' : 'Ez jóval magasabb a célnál – jó billentyűt ütöttél?', 'warn');
+      $('dirMain').textContent = r.edge === 'low' ? 'Nagyon mély' : 'Nagyon magas';
+      $('dirSub').textContent = 'Több mint másfél félhangnyi eltérés. Ellenőrizd a billentyűt (a kijelölt húrt), vagy tekerd lassan ' + (r.edge === 'low' ? 'jobbra.' : 'balra.');
+    }
+  } else if (now - lastValid > 1500) {
+    if (hist.length) { hist = []; inTuneSince = 0; }
+    showIdle(lastReading ? 'Elhalt a hang – üsd le újra' : undefined);
+  }
+}
+
+/* ======================================================= INDULÁS */
+initTicks(); renderSetup();
+if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

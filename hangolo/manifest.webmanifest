@@ -1,0 +1,16 @@
+{
+  "name": "Zongorahangoló",
+  "short_name": "Hangoló",
+  "description": "Zongorahangoló: billentyűről billentyűre megmutatja, merre és mennyit tekerj.",
+  "lang": "hu",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#14111a",
+  "theme_color": "#14111a",
+  "icons": [
+    { "src": "../icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "../icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
