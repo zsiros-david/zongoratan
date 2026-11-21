@@ -138,6 +138,18 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
 .kbd .b.done { background: linear-gradient(#2f5133, #183019); }
 .kbd .tgt.w { background: linear-gradient(#ffd98a, var(--amber)); border-color: #b77f12; }
 .kbd .tgt.b { background: linear-gradient(#ffcd6a, #c98a10); border-color: #7a5208; }
+.kbd .ref.w { background: linear-gradient(#bff0ea, var(--teal)); border-color: #2f8f84; }
+.kbd .ref .lab { color: #0f3c37; }
+.ov i.ref { background: var(--teal); height: 100%; }
+.detname { font-family: var(--display); font-size: clamp(72px, 20vw, 120px); line-height: 1; text-align: center; transition: opacity .2s; }
+.detname.stale { opacity: .35; }
+.detsub { text-align: center; color: var(--muted); margin-top: 4px; }
+.detdev { text-align: center; margin-top: 10px; font-size: 17px; }
+.detdev b { font-variant-numeric: tabular-nums; }
+.finda { font-size: 16.5px; }
+.finda .big { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+.finda .big b { color: var(--teal); }
+.finda p { margin: 8px 0 0; color: var(--muted); font-size: 14.5px; }
 .kbd .tgt { animation: pulse 1.6s ease-in-out infinite; }
 @keyframes pulse { 50% { filter: brightness(1.18); } }
 .kbd .lab { position: absolute; bottom: 6px; left: 0; right: 0; text-align: center; font-size: 11px; color: #6c6458; font-weight: 600; }
@@ -249,6 +261,7 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
 
     <div class="cta">
       <button type="button" class="btn primary" id="startBtn">Indítás</button>
+      <button type="button" class="btn" id="detectBtn">🎹 Melyik hang ez?</button>
       <span id="resumeInfo" class="small"></span>
       <button type="button" class="btn ghost" id="resetBtn" hidden>Előről kezdem</button>
     </div>
@@ -260,6 +273,7 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
 <section id="tuner" class="screen" hidden>
   <div class="topbar">
     <button type="button" class="iconbtn" id="backBtn">‹ Beállítások</button>
+    <button type="button" class="iconbtn" id="detectBtn2">Melyik hang?</button>
     <div class="prog">
       <div class="txt"><span id="progTxt"></span><span id="progKeys"></span></div>
       <div class="bar"><i id="progBar"></i></div>
@@ -332,6 +346,33 @@ h2 { font-size: 13px; letter-spacing: .14em; text-transform: uppercase; color: v
     <button type="button" class="btn" id="prevBtn">‹ Előző</button>
     <button type="button" class="btn" id="playBtn">🔊 Hallgasd meg</button>
     <button type="button" class="btn next" id="nextBtn">Következő ›</button>
+  </div>
+</section>
+
+<!-- ======================================================= MELYIK HANG? -->
+<section id="detect" class="screen" hidden>
+  <div class="topbar">
+    <button type="button" class="iconbtn" id="detBack">‹ Vissza</button>
+    <div class="prog"><div class="txt"><b>Melyik hang ez?</b><span>Üss le bármelyik billentyűt</span></div></div>
+  </div>
+  <div class="main">
+    <div class="card col-left">
+      <div class="status" id="detStatus"><span id="detStatusTxt">Üss le egy billentyűt, és hagyd zengeni</span><span class="lvl"><i id="dlvl"></i></span></div>
+      <div class="detname stale" id="detName">?</div>
+      <div class="detsub" id="detSub">&nbsp;</div>
+      <div class="detdev" id="detDev">&nbsp;</div>
+      <div class="kbdwrap"><div class="kbdtop"></div><div class="kbd" id="dkbd"></div></div>
+      <div class="overview">
+        <div class="ol"><span>Teljes billentyűzet</span><span><span style="color:var(--amber)">■</span> ez a hang · <span style="color:var(--teal)">■</span> A4</span></div>
+        <div class="ov" id="dov"></div>
+      </div>
+    </div>
+    <div class="card col-right finda" id="findA">
+      <div class="big">Hol az <b>A4</b>?</div>
+      <div id="findAtxt">Üss le egy billentyűt, és megmondom, merre van tőle.</div>
+      <p>Így ismered fel az A-t: a <b>három fekete billentyűből</b> álló csoportban a 2. és a 3. fekete billentyű között lévő fehér billentyű. Az A4 a középső C-től jobbra eső első A – a billentyűzet közepe táján.</p>
+      <div class="cta" style="margin-top:14px"><button type="button" class="btn primary" id="detTune" disabled>Ezt a hangot hangolom</button></div>
+    </div>
   </div>
 </section>
 
@@ -476,6 +517,62 @@ function measure(buf, sr, fm) {
   else f += (c > a ? 1 : -1) * st2 * 0.5;
   return { level, f, cents: 1200 * Math.log2(f / fm), q };
 }
+
+// Szabad hangfelismerés: melyik billentyűt ütötték le? FFT + harmonikus összegzés,
+// a félúton lévő (köztes) frekvenciák levonásával – ez szűri ki az oktávtévesztést.
+const _tw = {};
+function fftMag(x) {
+  const N = x.length, re = Float64Array.from(x), im = new Float64Array(N);
+  for (let i = 1, j = 0; i < N; i++) {
+    let bit = N >> 1; for (; j & bit; bit >>= 1) j ^= bit; j ^= bit;
+    if (i < j) { const t = re[i]; re[i] = re[j]; re[j] = t; }
+  }
+  let tw = _tw[N];
+  if (!tw) { tw = _tw[N] = { c: new Float64Array(N / 2), s: new Float64Array(N / 2) }; for (let i = 0; i < N / 2; i++) { tw.c[i] = Math.cos(2 * Math.PI * i / N); tw.s[i] = -Math.sin(2 * Math.PI * i / N); } }
+  for (let len = 2; len <= N; len <<= 1) {
+    const half = len >> 1, stp = N / len;
+    for (let i = 0; i < N; i += len) for (let j = 0; j < half; j++) {
+      const wr = tw.c[j * stp], wi = tw.s[j * stp], a = i + j, b = a + half;
+      const xr = re[b] * wr - im[b] * wi, xi = re[b] * wi + im[b] * wr;
+      re[b] = re[a] - xr; im[b] = im[a] - xi; re[a] += xr; im[a] += xi;
+    }
+  }
+  const m = new Float64Array(N / 2);
+  for (let i = 0; i < N / 2; i++) m[i] = Math.sqrt(Math.sqrt(re[i] * re[i] + im[i] * im[i])); // tömörített amplitúdó
+  return m;
+}
+/** Visszaadja a legvalószínűbb billentyű sorszámát (1–88) vagy null-t. */
+function identifyKey(buf, sr, kFrom, kTo, a4) {
+  const N = buf.length;
+  let mean = 0; for (let i = 0; i < N; i++) mean += buf[i]; mean /= N;
+  let rms = 0; for (let i = 0; i < N; i++) { const v = buf[i] - mean; rms += v * v; }
+  if (Math.sqrt(rms / N) < 0.0015) return null;
+  const w = hann(N), x = new Float64Array(N);
+  for (let i = 0; i < N; i++) x[i] = (buf[i] - mean) * w[i];
+  const A = fftMag(x), bin = sr / N, FMAX = 5000;
+  const fl = Array.from(A.subarray(Math.floor(40 / bin), Math.floor(4000 / bin))).sort((a, b) => a - b);
+  const floor = fl[fl.length >> 1] || 1e-9;
+  const band = f => {
+    if (f < 20 || f > FMAX) return floor;
+    const i0 = Math.floor(f * 0.977 / bin), i1 = Math.ceil(f * 1.0234 / bin); // ±40 cent
+    let m = 0; for (let i = i0; i <= i1; i++) if (A[i] > m) m = A[i];
+    return m;
+  };
+  let best = null, bestS = -Infinity;
+  for (let k = kFrom; k <= kTo; k++) {
+    const f = a4 * Math.pow(2, (k - 49) / 12);
+    let s = 0, wt = 1;
+    for (let n = 1; n <= 8; n++, wt *= 0.85) {
+      if (n * f > FMAX) break;
+      s += wt * (band(n * f) - band((n - 0.5) * f));
+    }
+    if (s > bestS) { bestS = s; best = k; }
+  }
+  if (best == null) return null;
+  const f = a4 * Math.pow(2, (best - 49) / 12);
+  let pk = 0; for (let n = 1; n <= 4; n++) pk = Math.max(pk, band(n * f));
+  return pk > 6 * floor ? best : null;
+}
 // ==/ESTIMATOR==
 
 /* ======================================================= HANG + MIKROFON */
@@ -556,17 +653,13 @@ $('startBtn').addEventListener('click', async () => {
   try {
     await startAudio();
   } catch (e) {
-    const E = $('err'); E.hidden = false;
-    if (e && e.message === 'insecure') E.innerHTML = 'A mikrofon csak biztonságos (https://) címen érhető el. Nyisd meg a GitHub Pages címről.';
-    else if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) E.innerHTML = 'Nem kaptam engedélyt a mikrofonhoz. iPaden/iPhone-on: <b>Beállítások › Safari › Mikrofon</b> (vagy a címsor „aA” menüjében a webhely beállításai), majd töltsd újra az oldalt.';
-    else if (e && e.name === 'NotFoundError') E.textContent = 'Nem találok mikrofont ezen a készüléken.';
-    else E.textContent = 'Nem sikerült elindítani a mikrofont: ' + (e && (e.message || e.name));
+    const E = $('err'); E.hidden = false; E.innerHTML = errMsg(e);
     return;
   }
   buildSteps();
   if (prog().idx >= steps.length) prog().idx = 0;
   $('setup').hidden = true; $('tuner').hidden = false;
-  running = true; keepAwake();
+  mode = 'tune'; running = true; keepAwake();
   renderStep(); window.scrollTo(0, 0);
   if (!loopOn) { loopOn = true; loop(); }
 });
@@ -639,8 +732,10 @@ function renderFinish() {
 
 /* -------------------------------------------------------- billentyűzet */
 const whiteIdx = {}; { let w = 0; for (let k = 1; k <= 88; k++) { if (!isBlackMidi(midiOf(k))) whiteIdx[k] = w++; } }
-function drawKbd(k) {
-  const el = $('kbd'), I = inst();
+function drawKbd(k, elId = 'kbd', detect = false) {
+  const el = $(elId), I = inst();
+  const keyDone = detect ? () => false : window.keyDone;
+  const extra = kk => detect && kk === 49 && kk !== k ? ' ref' : '';
   const W = el.clientWidth < 520 ? 11 : 15;
   const wOf = kk => isBlackMidi(midiOf(kk)) ? whiteIdx[kk - 1] + 0.5 : whiteIdx[kk];
   let minW = Infinity, maxW = -Infinity;
@@ -654,12 +749,12 @@ function drawKbd(k) {
     if (black) {
       const left = (whiteIdx[kk - 1] - start + 1 - 0.31) * ww;
       if (left < 0 || left + ww * 0.62 > 100) continue;
-      html += `<div class="b${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}" style="left:${left}%;width:${ww * 0.62}%"></div>`;
+      html += `<div class="b${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}${extra(kk)}" style="left:${left}%;width:${ww * 0.62}%"></div>`;
     } else {
       const i = whiteIdx[kk] - start;
       if (i < 0 || i >= W) continue;
       const lab = pc(kk) === 0 ? 'C' + octOf(kk) : kk === k ? nameHu(kk) : '';
-      html += `<div class="w${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}" style="left:${i * ww}%;width:${ww}%"><span class="lab">${lab}</span></div>`;
+      html += `<div class="w${kk === k ? ' tgt' : ''}${keyDone(kk) ? ' done' : ''}${extra(kk)}" style="left:${i * ww}%;width:${ww}%"><span class="lab">${extra(kk) ? 'A4' : lab}</span></div>`;
     }
   }
   const mx = (wOf(k) - start + 0.5) * ww;
@@ -687,7 +782,7 @@ function jumpToKey(k, render = true) {
   save();
   if (render && running) renderStep();
 }
-window.addEventListener('resize', () => { if (running && prog().idx < steps.length) drawKbd(cur().k); });
+window.addEventListener('resize', () => { if (mode === 'tune' && running && prog().idx < steps.length) drawKbd(cur().k); if (mode === 'detect' && detKey) drawKbd(detKey, 'dkbd', true); });
 
 /* ------------------------------------------------------------- gombok */
 function go(d) { const P = prog(); P.idx = Math.max(0, Math.min(steps.length, P.idx + d)); save(); renderStep(); }
@@ -775,8 +870,10 @@ function markDoneAuto() {
 }
 function loop() {
   setTimeout(loop, 70);
-  if (!running || !analyser || prog().idx >= steps.length) return;
+  if (!running || !analyser) return;
   const now = performance.now();
+  if (mode === 'detect') { analyser.getFloatTimeDomainData(buf); detectTick(now); return; }
+  if (prog().idx >= steps.length) return;
   if (now < pauseUntil) { setStatus('Referenciahang szól…'); $('lvl').style.width = '0'; return; }
   analyser.getFloatTimeDomainData(buf);
   const st = cur(), n = partialFor(st.k), fm = targetHz(st.k) * n;
@@ -810,6 +907,91 @@ function loop() {
     if (hist.length) { hist = []; inTuneSince = 0; }
     showIdle(lastReading ? 'Elhalt a hang – üsd le újra' : undefined);
   }
+}
+
+/* ====================================================== MELYIK HANG? */
+let mode = 'tune', detFrom = 'setup', detKey = null, detHist = [], detLast = 0;
+function errMsg(e) {
+  if (e && e.message === 'insecure') return 'A mikrofon csak biztonságos (https://) címen érhető el. Nyisd meg a GitHub Pages címről.';
+  if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) return 'Nem kaptam engedélyt a mikrofonhoz. iPaden/iPhone-on: <b>Beállítások › Safari › Mikrofon</b> (vagy a címsor „aA” menüjében a webhely beállításai), majd töltsd újra az oldalt.';
+  if (e && e.name === 'NotFoundError') return 'Nem találok mikrofont ezen a készüléken.';
+  return 'Nem sikerült elindítani a mikrofont: ' + (e && (e.message || e.name));
+}
+async function openDetect(from) {
+  $('err').hidden = true;
+  try { await startAudio(); } catch (e) { if (from === 'setup') { $('err').hidden = false; $('err').innerHTML = errMsg(e); } return; }
+  detFrom = from; mode = 'detect'; running = true; keepAwake();
+  $('setup').hidden = true; $('tuner').hidden = true; $('detect').hidden = false;
+  detKey = null; detHist = []; detLast = 0;
+  $('detName').textContent = '?'; $('detName').classList.add('stale');
+  $('detSub').innerHTML = '&nbsp;'; $('detDev').innerHTML = '&nbsp;'; $('detTune').disabled = true;
+  $('findAtxt').textContent = 'Üss le egy billentyűt, és megmondom, merre van tőle.';
+  drawKbd(49, 'dkbd', true); drawDetOverview(null);
+  window.scrollTo(0, 0);
+  if (!loopOn) { loopOn = true; loop(); }
+}
+$('detectBtn').addEventListener('click', () => openDetect('setup'));
+$('detectBtn2').addEventListener('click', () => openDetect('tuner'));
+$('detBack').addEventListener('click', () => {
+  $('detect').hidden = true;
+  if (detFrom === 'tuner') { mode = 'tune'; $('tuner').hidden = false; renderStep(); }
+  else { mode = 'tune'; running = false; $('setup').hidden = false; renderSetup(); }
+  window.scrollTo(0, 0);
+});
+$('detTune').addEventListener('click', () => {
+  if (!detKey) return;
+  const k = detKey; buildSteps(); jumpToKey(k, false);
+  mode = 'tune'; $('detect').hidden = true; $('tuner').hidden = false; running = true; renderStep(); window.scrollTo(0, 0);
+});
+function drawDetOverview(k) {
+  const I = inst(); let h = '';
+  for (let kk = I.from; kk <= I.to; kk++) h += `<i class="${isBlackMidi(midiOf(kk)) ? 'bk' : ''}${kk === k ? ' cur' : kk === 49 ? ' ref' : ''}"></i>`;
+  $('dov').innerHTML = h;
+}
+function whitesBetween(a, b) { let n = 0; const lo = Math.min(a, b), hi = Math.max(a, b); for (let k = lo + 1; k <= hi; k++) if (!isBlackMidi(midiOf(k))) n++; return n; }
+function detectTick(now) {
+  const I = inst();
+  const k = identifyKey(buf, ctx.sampleRate, I.from, I.to, S.a4);
+  const r = k ? measure(buf, ctx.sampleRate, targetHz(k) * partialFor(k)) : null;
+  $('dlvl').style.width = Math.min(100, Math.sqrt((r && r.level) || 0) * 400) + '%';
+  if (!k || !r || !r.f) {
+    if (detKey && now - detLast > 1500) { $('detName').classList.add('stale'); $('detStatusTxt').textContent = 'Elhalt a hang – üss le egy újat'; }
+    if (!k) detHist = [];
+    return;
+  }
+  detHist.push(k); if (detHist.length > 3) detHist.shift();
+  if (detHist.length < 3 || detHist.some(x => x !== k)) return; // 3 egyforma mérés kell
+  detLast = now;
+  const c = r.cents, n = partialFor(k), f = targetHz(k) * n * Math.pow(2, c / 1200) / n;
+  $('detName').classList.remove('stale');
+  $('detStatusTxt').textContent = 'Ezt hallom';
+  if (detKey !== k) {
+    detKey = k;
+    const p = pc(k);
+    $('detName').textContent = nameHu(k);
+    $('detSub').textContent = `${helmholtz(k)} · ${OCT_HU[octOf(k)]} oktáv · nemzetközi: ${INTL[p]}${octOf(k)} · balról a ${k - I.from + 1}. billentyű`;
+    drawKbd(k, 'dkbd', true); drawDetOverview(k);
+    const d = 49 - k;
+    let t;
+    if (d === 0) t = '<div class="big" style="font-size:19px">Ez maga az <b>A4</b>! 🎯</div>Innen indul a hangolás.';
+    else {
+      const wb = whitesBetween(k, 49);
+      t = `Innen <b>${Math.abs(d)} billentyűvel ${d > 0 ? 'jobbra ▶' : '◀ balra'}</b>` +
+        (isBlackMidi(midiOf(k)) ? '' : ` (${wb}. fehér billentyű ${d > 0 ? 'jobbra' : 'balra'})`) + '.';
+      if (pc(k) === 9) t += ` Ez is egy A, csak ${Math.abs(d) / 12} oktávval ${d > 0 ? 'mélyebb' : 'magasabb'}.`;
+      else {
+        // legközelebbi A
+        let best = null;
+        for (let kk = I.from; kk <= I.to; kk++) if (pc(kk) === 9 && (best === null || Math.abs(kk - k) < Math.abs(best - k))) best = kk;
+        if (best !== null && best !== 49) t += `<br>A legközelebbi A innen: <b>${nameHu(best)}</b>, ${Math.abs(best - k)} billentyűvel ${best > k ? 'jobbra' : 'balra'}.`;
+      }
+    }
+    $('findAtxt').innerHTML = t;
+    $('detTune').disabled = false; $('detTune').textContent = `${nameHu(k)} hangolása`;
+  }
+  const a = Math.abs(c);
+  $('detDev').innerHTML = `<b>${fmt(f, 2)} Hz</b> · ` + (a <= 3 ? '<span style="color:var(--ok)">jól hangolt ✓</span>' :
+    `<span style="color:${c < 0 ? 'var(--teal)' : 'var(--bad)'}">${sgn(c, 0)} cent – ${c < 0 ? 'mélyebb' : 'magasabb'} a kelleténél</span>`);
 }
 
 /* ======================================================= INDULÁS */
